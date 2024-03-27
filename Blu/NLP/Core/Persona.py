@@ -13,9 +13,9 @@ from openai import OpenAI
 
 # Blu
 from Blu.Utils.Utils import readMarkdownFile
-from Blu.LLM.LLMConversation import LLMConvo
-from Blu.OpenAI.OAIConvo import OAIConvo1_3_8
-from Blu.Core.Information import InformationFragment
+from Blu.NLP.LLM.LLMConversation import LLMConvo
+from Blu.NLP.OpenAI.OAIConvo import OAIConvo1_3_8
+from Blu.NLP.Core.Information import InformationFragment
 
 condenseFragmentCommand = readMarkdownFile(files('TextFragments') / 'Commands' / 'condenseFragment.md')
 reflectCommand = readMarkdownFile(files('TextFragments') / 'Commands' / 'selfReflect.md')

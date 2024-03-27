@@ -3,9 +3,8 @@ from typing import List, \
 	Any
 
 import openai
-import anthropic
 
-from Blu.LLM.LLMConversation import LLMConvo
+from Blu.NLP.LLM.LLMConversation import LLMConvo
 
 
 class ClaudeConvo(LLMConvo):

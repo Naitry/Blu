@@ -4,7 +4,7 @@ from typing import List, \
 
 import openai
 
-from Blu.LLM.LLMConversation import LLMConvo
+from Blu.NLP.LLM.LLMConversation import LLMConvo
 
 
 class OAIConvo1_3_8(LLMConvo):
