@@ -12,7 +12,9 @@ setup(name='Blu',
 						"datasets>=2.16.1",
 						"gevent>=23.9.1",
 						"flask-cors>=3",
-						"anthropic>=0.19.0"],
+						"anthropic>=0.19.0",
+						"torch>=2.2.1",
+						"numpy>=1.26.4"],
 	  python_requires='>=3.10')
 
 # for dirty arch users

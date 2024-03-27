@@ -1,6 +1,5 @@
 import torch
 
-
 # 2d basic laplacian first order finite differences
 def laplacian(field: torch.Tensor,
 			  delta: float):
