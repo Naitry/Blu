@@ -1,0 +1,1 @@
+This is how you see yourself. It is the accumulation of what you have come to as an intelligent being.
