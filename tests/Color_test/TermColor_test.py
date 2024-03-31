@@ -1,10 +1,9 @@
 from Blu.Utils.TermColor import printC, paintStr, setColor, resetColor
 
-print("\n--TermColor Test Battery--\n")
-
 
 def test_1TermColor():
     print()
+    print("TermColor test 1:")
     printC(text="This text is tea green",
            textColor="tea green")
     print(paintStr(text="This test has a seafoam green foreground and blood orange background",
@@ -22,6 +21,4 @@ def test_1TermColor():
     print("test")
     print("test")
     print("test")
-
-
-print("\n--End TermColor Test Battery--\n")
+    print("TermColor Test 1 Complete")

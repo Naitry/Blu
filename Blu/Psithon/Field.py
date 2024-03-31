@@ -11,6 +11,7 @@ import numpy as np
 # Blu components
 from Blu.Math.DifferentialGeometry import laplacianFourthOrder as Laplacian
 from Blu.Psithon.GaussianWavePacket import GaussianWavePacket
+from Blu.Utils.Terminal import clearTerminal, getTerminalSize, arrayToText
 
 # Data output
 from PIL import Image
@@ -226,6 +227,21 @@ class Field:
                           box=(self.tensor.size(0), 0))
 
         combinedImg.save(filepath)
+
+    def printField(self,
+                   clear: bool = True) -> None:
+        if clear:
+            clearTerminal()
+            # Get terminal size and adjust for aspect ratio of the tensor
+        columns, lines = getTerminalSize()
+        aspect_ratio = self.tensor.size(1) / self.tensor.size(0)
+        text_width = columns // 2  # Half the width for better visibility
+        text_height = int(text_width * aspect_ratio)
+        absField: np.ndarray = torch.abs(self.tensor).cpu().numpy()
+        print(arrayToText(arr=absField,
+                          width=text_width,
+                          height=text_height),
+              end="")
 
     def loadFromHDF5(self,
                      filePath: str) -> None:
