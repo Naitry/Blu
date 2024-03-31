@@ -11,7 +11,7 @@ import numpy as np
 # Blu components
 from Blu.Math.DifferentialGeometry import laplacianFourthOrder as Laplacian
 from Blu.Psithon.GaussianWavePacket import GaussianWavePacket
-from Blu.Utils.Terminal import clearTerminal, getTerminalSize, arrayToText
+from Blu.Utils.Terminal import clearTerminal, getTerminalSize, arrayToText, arrayToTextColored
 
 # Data output
 from PIL import Image
@@ -244,7 +244,7 @@ class Field:
         text_width = columns
         text_height = int(text_width * aspect_ratio)
         absField: np.ndarray = torch.abs(self.tensor).cpu().numpy()
-        print(arrayToText(arr=absField,
+        print(arrayToTextColored(arr=absField,
                           width=text_width,
                           height=text_height),
               end="")

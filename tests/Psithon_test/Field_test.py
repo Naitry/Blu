@@ -6,3 +6,4 @@ def test_1PsithonField():
                     k=[0.5,0.5])
     F.printField(clear=False)
 
+test_1PsithonField()
