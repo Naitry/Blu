@@ -9,7 +9,7 @@ from pathlib import Path
 # Global dictionary to store color data
 BLU_CM_ColorHexMap: Dict[str, str] = {}
 
-BLU_CM_ResourcePath: Path = files("Blu.Color.data") / 'colornames.csv'
+BLU_CM_ResourcePath: Path = files("Blu.Utils.colorData") / 'colornames.csv'
 
 with BLU_CM_ResourcePath.open(mode='r',
                               encoding='utf-8') as file:

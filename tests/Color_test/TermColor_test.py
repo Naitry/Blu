@@ -1,4 +1,4 @@
-from Blu.Color.TermColor import printC, paintStr, setColor, resetColor
+from Blu.Utils.TermColor import printC, paintStr, setColor, resetColor
 
 print("\n--TermColor Test Battery--\n")
 

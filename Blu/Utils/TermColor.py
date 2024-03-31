@@ -1,4 +1,4 @@
-from Blu.Color.ColorManager import hexToColor, getHexValue
+from Blu.Utils.ColorManager import hexToColor, getHexValue
 
 BLU_TC_reset_color: str = "\033[0m"
 
