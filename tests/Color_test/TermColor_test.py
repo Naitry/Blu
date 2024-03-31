@@ -1,6 +1,5 @@
 from Blu.Utils.TermColor import printC, paintStr, setColor, resetColor
 
-
 def test_1TermColor():
     print()
     print("TermColor test 1:")
@@ -15,10 +14,8 @@ def test_1TermColor():
     print("This regular print statement is colored")
     print("test")
     print("test")
-    print("test")
     resetColor()
     print("The terminal color is now reset")
-    print("test")
     print("test")
     print("test")
     print("TermColor Test 1 Complete")

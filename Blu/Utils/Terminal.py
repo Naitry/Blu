@@ -5,35 +5,41 @@ import numpy as np
 from PIL import Image
 
 
-def arrayToText(arr: np.ndarray,
-                width: int,
-                height: int) -> str:
+def arrayToText(arr: np.ndarray, width: int, height: int) -> str:
     """
-    Converts a numpy array into a text representation and prints it.
+    Converts a numpy array into a text representation.
 
     Args:
         arr (np.ndarray): The array to convert.
         width (int): The target width of the text representation.
         height (int): The target height of the text representation.
+
+    Returns:
+        str: The text representation of the array.
     """
-    # Mapping from value ranges to characters (from low to high values)
     chars = " .:-=+*#%@"
-    if arr.max() > 0:  # Normalize only if the max is greater than 0
+    if arr.max() > 0:
         normalized_arr = arr / arr.max()
     else:
         normalized_arr = arr
 
-    # Resize the array to fit the terminal dimensions
-    # Using PIL Image for resizing for simplicity
-    img = Image.fromarray(np.uint8(normalized_arr * 255))
-    img = img.resize((width, height), Image.NEAREST)
-    resized_arr = np.asarray(img)
-    lines: str = ""
-    # Convert array values to characters
+    # Calculate aspect ratio of a character in terminal
+    char_aspect_ratio = 0.5  # This is an assumption; may need to adjust based on your terminal
+
+    # Adjust width and height based on character aspect ratio
+    adjusted_width = width
+    adjusted_height = int(height * char_aspect_ratio)
+
+    # Resize the array
+    img = Image.fromarray((normalized_arr * 255).astype(np.uint8))
+    img = img.resize((adjusted_width, adjusted_height), Image.NEAREST)
+    resized_arr = np.array(img)
+
+    # Convert array to text
+    lines = ""
     for row in resized_arr:
-        line: str = "".join([chars[int((len(chars) - 1) * pixel / 255)] for pixel in row])
-        line += "\n"
-        lines += line
+        line = "".join(chars[min(pixel * len(chars) // 256, len(chars) - 1)] for pixel in row)
+        lines += line + "\n"
     return lines
 
 
@@ -50,7 +56,7 @@ def getTerminalSize() -> tuple[int, int]:
 
 def clearTerminal() -> None:
     """
-    Clears the terminal screen.
+    Clears the terminal
     """
     # Windows
     if os.name == 'nt':

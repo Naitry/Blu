@@ -18,6 +18,12 @@ from PIL import Image
 from matplotlib import cm
 import h5py
 
+# Suppress Warning
+import warnings
+
+# Function to suppress specific UserWarnings
+warnings.filterwarnings("ignore", message="ComplexHalf support is experimental and many operators don't support it yet.*")
+
 # Default simulation size
 BLU_PSITHON_defaultDimensions: int = 2
 BLU_PSITHON_defaultResolution: int = 1000
@@ -235,7 +241,7 @@ class Field:
             # Get terminal size and adjust for aspect ratio of the tensor
         columns, lines = getTerminalSize()
         aspect_ratio = self.tensor.size(1) / self.tensor.size(0)
-        text_width = columns // 2  # Half the width for better visibility
+        text_width = columns
         text_height = int(text_width * aspect_ratio)
         absField: np.ndarray = torch.abs(self.tensor).cpu().numpy()
         print(arrayToText(arr=absField,
