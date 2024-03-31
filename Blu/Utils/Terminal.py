@@ -45,6 +45,7 @@ def arrayToText(arr: np.ndarray, width: int, height: int) -> str:
 
     return lines
 
+
 def arrayToTextColored(arr: np.ndarray, width: int, height: int) -> str:
     """
     Converts a numpy array into a detailed, colorized text representation using an expanded range of ASCII characters.
@@ -90,6 +91,7 @@ def arrayToTextColored(arr: np.ndarray, width: int, height: int) -> str:
         lines += "\n"
 
     return lines
+
 
 def getTerminalSize() -> tuple[int, int]:
     """

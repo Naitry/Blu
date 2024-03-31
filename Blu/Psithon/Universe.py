@@ -128,6 +128,7 @@ class Universe:
                         imagePath = os.path.join(self.simRunPath,
                                                  "mostRecentTimestep.png")
                         field.saveImage(imagePath)
+                        field.printField()
 
                         # Save the field to an HDF5 file
                         field.saveHDF5(timestep=timestep,
