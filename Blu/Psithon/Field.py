@@ -22,7 +22,8 @@ import h5py
 import warnings
 
 # Function to suppress specific UserWarnings
-warnings.filterwarnings("ignore", message="ComplexHalf support is experimental and many operators don't support it yet.*")
+warnings.filterwarnings("ignore",
+                        message="ComplexHalf support is experimental and many operators don't support it yet.*")
 
 # Default simulation size
 BLU_PSITHON_defaultDimensions: int = 2
@@ -244,46 +245,52 @@ class Field:
         text_height = int(text_width * aspect_ratio)
         absField: np.ndarray = torch.abs(self.tensor).cpu().numpy()
         print(arrayToTextColored(arr=absField,
-                          width=text_width,
-                          height=text_height),
+                                 width=text_width,
+                                 height=text_height),
               end="")
 
-    def loadFromHDF5(self,
-                     filePath: str) -> None:
+    def loadFromHDF5(self, filePath: str, timestep: Optional[int] = None) -> None:
         """
-        Loads a tensor from an HDF5 file that contains real, imaginary, and potential components.
+        Loads a tensor from an HDF5 file. If timestep is provided, it attempts to load datasets
+        for that specific timestep.
 
+        Args:
         filePath: Path to the HDF5 file to load the data from.
-
-        Returns:
-        A complex tensor reconstructed from the loaded data.
+        timestep: Specific timestep to load. If None, attempts to load the first timestep found.
         """
-        with h5py.File(filePath,
-                       'r') as f:
-            realPart = torch.Tensor(f['real'][:])
-            imagPart = torch.Tensor(f['imaginary'][:])
-            self.tensor = torch.complex(real=realPart,
-                                        imag=imagPart)
-            self.name = f['name'][:]
+        with h5py.File(filePath, 'r') as f:
+            # Attempt to dynamically determine the dataset names if timestep is provided or not
+            real_dataset_name = f'real_{timestep}' if timestep is not None else 'real'
+            imaginary_dataset_name = f'imaginary_{timestep}' if timestep is not None else 'imaginary'
+            name_dataset_name = f'name_{timestep}' if timestep is not None else 'name'
+
+            # Check if the expected datasets exist
+            if real_dataset_name not in f or imaginary_dataset_name not in f:
+                raise KeyError(
+                    f"Required datasets '{real_dataset_name}' or '{imaginary_dataset_name}' not found in file.")
+
+            realPart = torch.Tensor(f[real_dataset_name][:])
+            imagPart = torch.Tensor(f[imaginary_dataset_name][:])
+            self.tensor = torch.complex(real=realPart, imag=imagPart)
+
+            if name_dataset_name in f:
+                self.name = f[name_dataset_name][:].astype(str)
 
 
-def loadFieldFromHDF5(filePath: str,
-                      spatialDimensions: int = BLU_PSITHON_defaultDimensions,
-                      resolution: int = BLU_PSITHON_defaultResolution,
-                      dtype: torch.dtype = BLU_PSITHON_defaultDataType,
-                      device: torch.device = torch.device('cpu')) -> Field:
+def loadFieldFromHDF5(filePath: str, spatialDimensions: int = 2, resolution: int = 1000,
+                      dtype: torch.dtype = torch.cfloat, device: torch.device = torch.device('cpu'),
+                      timestep: Optional[int] = None) -> Field:
     """
-    Loads a complex field from an HDF5 file that contains real, imaginary, and potential components.
+    Function to load a field from an HDF5 file, possibly for a specific timestep.
 
     Args:
-    filePath: Path to the HDF5 file to load the data from.
+    filePath: The path to the HDF5 file.
+    spatialDimensions, resolution, dtype, device: Parameters for the Field initialization.
+    timestep: Specific timestep to load. If None, attempts to load the first timestep found.
 
     Returns:
-    A complex tensor reconstructed from the loaded data.
+    A Field object loaded with data from the HDF5 file.
     """
-    field = Field(spatialDimensions=spatialDimensions,
-                  resolution=resolution,
-                  dtype=dtype,
-                  device=device)
-    field.loadFromHDF5(filePath=filePath)
+    field = Field(spatialDimensions=spatialDimensions, resolution=resolution, dtype=dtype, device=device)
+    field.loadFromHDF5(filePath=filePath, timestep=timestep)
     return field

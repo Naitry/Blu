@@ -4,3 +4,14 @@
 .idea/misc.xml
 .idea/Blu.iml
 .idea/misc.xml
+Blu/Math/__pycache__/DifferentialGeometry.cpython-312.pyc
+Blu/Psithon/__pycache__/Field.cpython-312.pyc
+Blu/Psithon/__pycache__/GaussianWavePacket.cpython-312.pyc
+Blu/Psithon/__pycache__/Universe.cpython-312.pyc
+Blu/Math/__pycache__/DifferentialGeometry.cpython-312.pyc
+Blu/Psithon/__pycache__/Field.cpython-312.pyc
+Blu/Psithon/__pycache__/GaussianWavePacket.cpython-312.pyc
+Blu/Psithon/__pycache__/Universe.cpython-312.pyc
+Blu/Utils/__pycache__/Terminal.cpython-312.pyc
+tests/Psithon_test/__pycache__/Field_test.cpython-312-pytest-8.1.1.pyc
+Blu/Psithon/simulations/runCatalog.csv
