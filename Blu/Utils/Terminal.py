@@ -22,10 +22,7 @@ def arrayToText(arr: np.ndarray, width: int, height: int) -> str:
     chars = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
 
     # Normalize the array only if necessary
-    if arr.max() > 1:
-        normalized_arr = arr / 255.0
-    else:
-        normalized_arr = arr
+    normalized_arr = arr / arr.max()
 
     # Calculate the adjusted width and height based on the aspect ratio of the characters
     char_aspect_ratio = 0.5
@@ -62,10 +59,7 @@ def arrayToTextColored(arr: np.ndarray, width: int, height: int) -> str:
     color_spectrum = ["red", "orange", "yellow", "green", "cyan", "blue", "indigo", "violet"]
 
     # Normalize the array only if necessary
-    if arr.max() > 1:
-        normalized_arr = arr / 255.0
-    else:
-        normalized_arr = arr
+    normalized_arr = arr / arr.max()
 
     # Calculate the adjusted width and height based on the aspect ratio of the characters
     char_aspect_ratio = 0.5
