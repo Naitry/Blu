@@ -132,7 +132,6 @@ class Field:
         # Ensure normalization
         probabilityDistribution.divide_(torch.sum(probabilityDistribution))
 
-        print("past")
         # Calculate the Shannon entropy
         # Add a small number to avoid log(0)
         entropy = -torch.sum(probabilityDistribution * torch.log(probabilityDistribution + 1e-12))
