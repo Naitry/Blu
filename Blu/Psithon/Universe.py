@@ -37,7 +37,7 @@ class Universe:
                  fields: Optional[list[Field]] = None,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType,
                  device: torch.device = torch.device('cuda'),
-                 simulationFolderPath: str = './simulations/'):
+                 simulationFolderPath: str = '/mnt/nfs/simulations/'):
         """
         Universe constructor
 
@@ -128,7 +128,7 @@ class Universe:
                         imagePath = os.path.join(self.simRunPath,
                                                  "mostRecentTimestep.png")
                         field.saveImage(imagePath)
-                        field.printField()
+                        field.printField(clear=False)
 
                         # Save the field to an HDF5 file
                         field.saveHDF5(timestep=timestep,

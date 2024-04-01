@@ -9,7 +9,7 @@ import torch
 import numpy as np
 
 # Blu components
-from Blu.Math.DifferentialGeometry import laplacianFourthOrder as Laplacian
+from Blu.Math.DifferentialGeometry import laplacianLegacy as Laplacian
 from Blu.Psithon.GaussianWavePacket import GaussianWavePacket
 from Blu.Utils.Terminal import clearTerminal, getTerminalSize, arrayToText, arrayToTextColored
 
@@ -29,7 +29,7 @@ BLU_PSITHON_defaultDimensions: int = 2
 BLU_PSITHON_defaultResolution: int = 1000
 
 # Primary data type for the field
-BLU_PSITHON_defaultDataType: torch.dtype = torch.complex32
+BLU_PSITHON_defaultDataType: torch.dtype = torch.cfloat
 
 # Floating point data type which will be able to represent one of the complex components
 BLU_PSITHON_defaultDataTypeComponent: torch.dtype = torch.float16
@@ -88,7 +88,7 @@ class Field:
                                         dimensions=self.tensor.dim(),
                                         sigma=sigma,
                                         k=torch.tensor(data=k,
-                                                       dtype=torch.complex32,
+                                                       dtype=torch.float32,
                                                        device=device),
                                         dtype=dtype,
                                         device=device)
@@ -162,7 +162,7 @@ class Field:
                                                delta=delta)
 
         # Iterate based on the time dependent Schrödinger equation
-        self.tensor.add_(1j * dt * (0.5 * laplaceField - V))
+        self.tensor.add_(-1j * dt * (-0.5 * laplaceField))
 
         # Apply boundary conditions for n-dimensions
         for dim in range(self.tensor.dim()):
