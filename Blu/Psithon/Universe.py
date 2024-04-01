@@ -122,7 +122,7 @@ class Universe:
                     fields, entropies, timestep = data
                     print(f"{timestep} {entropies[0]}")
                     for i, field in enumerate(fields):
-                        filename = f"field_{i}_timestep_{timestep}.hdf5"
+                        filename = f"field_{i}.hdf5"
                         filepath = os.path.join(self.simRunPath,
                                                 filename)
                         imagePath = os.path.join(self.simRunPath,
