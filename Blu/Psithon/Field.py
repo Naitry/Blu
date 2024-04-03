@@ -44,7 +44,7 @@ class Field:
                  spatialDimensions: int = BLU_PSITHON_defaultDimensions,
                  resolution: int = BLU_PSITHON_defaultResolution,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType,
-                 device: torch.device = torch.device('cpu')):
+                 device: torch.device = torch.device('cuda')):
         self.name: Optional[str] = name
         self.tensor: torch.Tensor
         self.spatialDimensions: int = spatialDimensions
