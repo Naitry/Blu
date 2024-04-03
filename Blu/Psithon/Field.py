@@ -39,13 +39,13 @@ BLU_PSITHON_defaultDataTypeComponent: torch.dtype = torch.float16
 class Field:
 
     def __init__(self,
-                 name: Optional[str] = None,
+                 name: str,
                  field: Optional[torch.Tensor] = None,
                  spatialDimensions: int = BLU_PSITHON_defaultDimensions,
                  resolution: int = BLU_PSITHON_defaultResolution,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType,
                  device: torch.device = torch.device('cuda')):
-        self.name: Optional[str] = name
+        self.name = name
         self.tensor: torch.Tensor
         self.spatialDimensions: int = spatialDimensions
         self.resolution: int = resolution
@@ -294,3 +294,43 @@ def loadFieldFromHDF5(filePath: str, spatialDimensions: int = 2, resolution: int
     field = Field(spatialDimensions=spatialDimensions, resolution=resolution, dtype=dtype, device=device)
     field.loadFromHDF5(filePath=filePath, timestep=timestep)
     return field
+
+
+def loadFieldComponentDict(filePath: str,
+                           prefix: str) -> dict[int, torch.Tensor]:
+    """
+    List all timesteps for datasets with a given prefix in an HDF5 file.
+
+    Args:
+        filePath: The path to the HDF5 file.
+        prefix: The prefix to filter datasets by (e.g., 'real' or 'imaginary').
+
+    Returns:
+        A list of timesteps (as integers) in chronological order.
+    """
+    data: dict[int, torch.Tensor] = {}
+
+    def filterDatasets(name: str,
+                       obj: h5py.Dataset):
+        if isinstance(obj, h5py.Dataset) and name.startswith(prefix):
+            # Extract timestep from the dataset name
+            _, timestep_str = name.split('_')
+            try:
+                timestep = int(timestep_str)
+                data[timestep] = torch.tensor(np.array(obj))
+            except ValueError:
+                # Handle cases where the conversion fails
+                print(f"Warning: Found dataset with non-integer timestep: {name}")
+
+    with h5py.File(filePath, 'r') as file:
+        file.visititems(filterDatasets)
+
+    return sorted(data.items())
+
+
+def loadSimulation(filepath: str):
+    realData: dict[int, torch.Tensor] = loadFieldComponentDict(filepath=filepath,
+                                                               prefix="real")
+    imaginaryData: dict[int, torch.Tensor] = loadFieldComponentDict(filepath=filepath,
+                                                                    prefix="imaginary")
+    pass

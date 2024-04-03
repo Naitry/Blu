@@ -27,43 +27,6 @@ def readAndPrintDataset(filePath: str,
             print(f"Dataset '{datasetName}' not found in the file.")
 
 
-def listTimesteps(filePath: str,
-                  prefix: str) -> list:
-    """
-    List all timesteps for datasets with a given prefix in an HDF5 file.
-
-    Args:
-        filePath: The path to the HDF5 file.
-        prefix: The prefix to filter datasets by (e.g., 'real' or 'imaginary').
-
-    Returns:
-        A list of timesteps (as integers) in chronological order.
-    """
-    data: Dict[int, torch.tensor] = {}
-
-    def filterDatasets(name: str,
-                       obj: h5py.Dataset):
-        if isinstance(obj, h5py.Dataset) and name.startswith(prefix):
-            # Extract timestep from the dataset name
-            _, timestep_str = name.split('_')
-            try:
-                timestep = int(timestep_str)
-                data[timestep] = torch.tensor(np.array(obj))
-            except ValueError:
-                # Handle cases where the conversion fails
-                print(f"Warning: Found dataset with non-integer timestep: {name}")
-
-    with h5py.File(filePath, 'r') as file:
-        file.visititems(filterDatasets)
-
-    return sorted(data.items())
-
-
-# Example usage
-timesteps = listTimesteps('/mnt/nfs/simulations/Run_24/field_0.hdf5', 'real')
-print(timesteps)
-
-
 # Example usage
 # listDatasets('/mnt/nfs/simulations/Run_24/field_0.hdf5')
 
