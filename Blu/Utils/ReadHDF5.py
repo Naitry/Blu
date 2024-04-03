@@ -1,5 +1,7 @@
 import h5py
 import numpy as np
+import torch
+from typing import Dict
 
 
 def listDatasets(filePath: str):
@@ -19,7 +21,7 @@ def readAndPrintDataset(filePath: str,
         # Ensure the dataset exists
         if datasetName in file:
             data = np.array(file[datasetName])
-            mid_indices = tuple(map(lambda x: x // 2, data.shape))
+            # mid_indices = tuple(map(lambda x: x // 2, data.shape))
             print(f"Contents of dataset '{datasetName}':\n{data}")
         else:
             print(f"Dataset '{datasetName}' not found in the file.")
@@ -37,7 +39,7 @@ def listTimesteps(filePath: str,
     Returns:
         A list of timesteps (as integers) in chronological order.
     """
-    timesteps = []
+    data: Dict[int, torch.tensor] = {}
 
     def filterDatasets(name: str,
                        obj: h5py.Dataset):
@@ -46,7 +48,7 @@ def listTimesteps(filePath: str,
             _, timestep_str = name.split('_')
             try:
                 timestep = int(timestep_str)
-                timesteps.append(timestep)
+                data[timestep] = torch.tensor(np.array(obj))
             except ValueError:
                 # Handle cases where the conversion fails
                 print(f"Warning: Found dataset with non-integer timestep: {name}")
@@ -54,7 +56,7 @@ def listTimesteps(filePath: str,
     with h5py.File(filePath, 'r') as file:
         file.visititems(filterDatasets)
 
-    return sorted(timesteps)
+    return sorted(data.items())
 
 
 # Example usage
