@@ -63,7 +63,7 @@ class Field:
                       k: list[float] = None,
                       position: Optional[list[float]] = None,
                       dtype: torch.dtype = torch.float32,
-                      device: torch.device = torch.device('cpu')) -> None:
+                      device: torch.device = torch.device('cuda')) -> None:
         """
         Place a Gaussian wave packet into the field at a specified position.
 
@@ -125,7 +125,7 @@ class Field:
 
         # Place the wave packet into the field at the specified position
         # The ellipsis (...) allows for slicing in N dimensions
-        self.tensor[tuple(fieldSlices)] = wavePacket[tuple(wavePacketSlices)]
+        self.tensor[tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
 
     def calculateEntropy(self) -> float:
         # Calculate the probability distribution from the wave function

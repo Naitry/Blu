@@ -17,10 +17,8 @@ import torch
 
 # Blu
 from Blu.Psithon.Field import Field, \
-    BLU_PSITHON_defaultDimensions, \
-    BLU_PSITHON_defaultDataType, \
-    BLU_PSITHON_defaultResolution
-from Blu.Psithon.GaussianWavePacket import GaussianWavePacket as GWavePacket
+    BLU_PSITHON_defaultDataType
+
 
 # Time
 import time
@@ -120,9 +118,9 @@ class Universe:
                     entropies: list[float]
                     timestep: int
                     fields, entropies, timestep = data
-                    print(f"{timestep} {entropies[0]}")
                     for i, field in enumerate(fields):
                         filename = f"field_{i}.hdf5"
+                        print(f"field {i}: t = {timestep}; entropy = {entropies[i]}")
                         filepath = os.path.join(self.simRunPath,
                                                 filename)
                         imagePath = os.path.join(self.simRunPath,
@@ -212,7 +210,6 @@ class Universe:
         """
         # 1. Init
         # set run ID
-        print(1)
         self.setSimRunID()
         self.simRunPath = self.simTargetPath + self.simRunID
         self.addSimRunEntry()
@@ -222,15 +219,19 @@ class Universe:
         saveInterval: int = numSteps // totalFrames
 
         entropies: list[float] = []
+        initialEntropies: list[float] = []
+        cpuFields: list[Field] = []
+
+        for field in self.fields:
+            entropy = field.calculateEntropy()
+            initialEntropies.append(entropy)
 
         # 2. Multithreading queues
         # Create multiprocessing queues
-        print(2)
         self.simQueue = mp.Queue()
         self.simResultQueue = mp.Queue()
 
         # 3. Main sim loop
-        print(3)
         self.simStartTime: float = time.time()
         outputProcess: mp.Process = mp.Process(target=self.saveSimulation)
         outputProcess.start()
@@ -238,11 +239,12 @@ class Universe:
         for step in range(int(numSteps)):
             # CASE: step should be saved
             if step % saveInterval == 0:
-                cpuFields: list[Field] = []
+                cpuFields = []
+                entropies = []
                 # iterate through fields and calculate entropies
-                for field in self.fields:
+                for i, field in enumerate(self.fields):
                     entropy = field.calculateEntropy()
-                    print(f"e {entropy}")
+                    print(f"Initial entropy: {initialEntropies[i]}")
                     entropies.append(entropy)
                     cpuField = copy.deepcopy(field)
                     cpuField.tensor = cpuField.tensor.cpu()
