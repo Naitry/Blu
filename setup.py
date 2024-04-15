@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='Blu',
-      version='0.01',
+      version='0.02',
       packages=find_packages(),
       install_requires=["openai-whisper>=20231117 ",
                         "elevenlabs>=0.2.27",
