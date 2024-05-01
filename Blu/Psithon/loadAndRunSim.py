@@ -11,7 +11,7 @@ unet_model: UNet = UNet(n_channels=2, n_classes=2)
 optimizer = optim.Adam(unet_model.parameters(), lr=0.001)
 
 # Loading the checkpoint
-checkpoint = torch.load("/home/naitry/Dev/Blu/Blu/Psithon/unet_checkpoint.pth")
+checkpoint = torch.load("/home/naitry/Dev/BluLegacy/unet_checkpoint2.pth")
 unet_model.load_state_dict(checkpoint['model_state_dict'])
 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 epoch = checkpoint['epoch']
