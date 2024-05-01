@@ -46,6 +46,7 @@ def train_model(autoencoder, epochs, batch_size, resolution, minParticles, maxPa
 
         print(f'Epoch {epoch+1}, Avg Loss: {total_loss / batch_size}')
 
+autoencoder = HybridAutoencoder()
 # Example parameters
 epochs = 10
 batch_size = 10
