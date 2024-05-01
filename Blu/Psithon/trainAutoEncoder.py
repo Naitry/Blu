@@ -5,6 +5,7 @@ import random
 from torch.utils.data import DataLoader
 from Blu.Psithon.Universe import Universe
 from Blu.Psithon.Field import Field
+from Blu.Psithon.autoencoderModel import HybridAutoencoder
 
 def generate_random_field(resolution, minParticles, maxParticles, minPacketSize, maxPacketSize, safeRegion):
     """Generates a random field with wave packets at random positions and wave vectors."""
