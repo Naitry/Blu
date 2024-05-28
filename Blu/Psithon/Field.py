@@ -204,9 +204,10 @@ class Field:
 
     def saveImage(self,
                   filepath: str) -> None:
-        absField: np.ndarray = torch.abs(self.tensor).cpu().numpy()
-        realField: np.ndarray = torch.real(self.tensor).cpu().numpy()
-        imagField: np.ndarray = torch.imag(self.tensor).cpu().numpy()
+        print(self.tensor.size())
+        absField: np.ndarray = torch.abs(self.tensor).cpu().detach().numpy()
+        realField: np.ndarray = torch.real(self.tensor).cpu().detach().numpy()
+        imagField: np.ndarray = torch.imag(self.tensor).cpu().detach().numpy()
 
         def arrayToImage(arr: np.ndarray,
                          cmap):
