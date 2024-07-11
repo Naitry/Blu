@@ -6,8 +6,8 @@ import os
 import copy
 
 # Typing
-from typing import Optional, \
-    Union
+from typing import (Optional,
+                    Union)
 
 # Data
 import pandas as pd
@@ -16,9 +16,9 @@ import pandas as pd
 import torch
 
 # Blu
-from Blu.Psithon.Field import Field, \
-    BLU_PSITHON_defaultDataType
-
+from Blu.Psithon.Fields.Field import (Field,
+                                      BLU_PSITHON_defaultDataType)
+from Blu.Psithon.Particles.ParticleCloud import ParticleCloud
 
 # Time
 import time
@@ -30,11 +30,14 @@ class Universe:
     def __init__(self,
                  spatialDimensions: int,
                  resolution: int,
+                 scale: float,
+                 speedLimit: float,
                  dt: float,
                  delta: float,
                  fields: Optional[list[Field]] = None,
+                 particles: Optional[list[ParticleCloud]] = None,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType,
-                 device: torch.device = torch.device('cuda'),
+                 device: torch.device = torch.device('mps'),
                  simulationFolderPath: str = '/mnt/nfs/simulations/'):
         """
         Universe constructor
@@ -50,10 +53,12 @@ class Universe:
         """
         self.spatialDimensions: int = spatialDimensions
         self.resolution: int = resolution
+        self.scale: float = scale
+        self.c: float = speedLimit
         self.dt: float = dt
         self.delta: float = delta
         self.fields: list[Field] = fields
-        self.fields = fields or []
+        self.particles: list[ParticleCloud] = particles
         self.dtype: torch.dtype = dtype
         self.device: torch.device = device
         # simulation variables
@@ -64,6 +69,21 @@ class Universe:
         self.simRunPath: Optional[str] = None
         self.simQueue: Optional[mp.Queue] = None
         self.simResultQueue: Optional[mp.Queue] = None
+
+    def addField(self,
+                 name: str) -> None:
+        """
+        add a new field to the Universe
+
+        :param name: the string name of the field
+
+        :return: none
+        """
+        self.fields.append(Field(name=name,
+                                 spatialDimensions=2,
+                                 resolution=self.resolution,
+                                 dtype=self.dtype,
+                                 device=self.device))
 
     def addField(self,
                  name: str) -> None:
@@ -158,7 +178,8 @@ class Universe:
             runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
             if self.simRunID in runCatalog['RunID'].values:
                 # If the column does not exist, it will be added
-                runCatalog.loc[runCatalog['RunID'] == self.simRunID, "EndTime"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                runCatalog.loc[runCatalog['RunID'] == self.simRunID, "EndTime"] = datetime.now().strftime(
+                    '%Y-%m-%d %H:%M:%S')
                 runCatalog.to_csv(catalogPath,
                                   index=False)
                 print(f"Recorded end time for {self.simRunID}.")
@@ -247,7 +268,7 @@ class Universe:
                     print(f"Initial entropy: {initialEntropies[i]}")
                     entropies.append(entropy)
                     cpuField = copy.deepcopy(field)
-                    cpuField.tensor = cpuField.tensor.cpu()
+                    cpuField.field = cpuField.field.cpu()
                     cpuFields.append(cpuField)
                 self.simQueue.put((cpuFields,
                                    entropies,

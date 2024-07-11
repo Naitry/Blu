@@ -1,4 +1,4 @@
-from Blu.Psithon.Field import Field
+from Blu.Psithon.Fields.Field import Field
 
 
 def test_1PsithonField():

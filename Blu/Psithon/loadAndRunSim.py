@@ -1,11 +1,11 @@
-from Blu.Psithon.model import UNet
+from Blu.Psithon.models.model import UNet
 from Blu.Psithon.Simulation import Simulation
-from Blu.Psithon.Field import Field
+from Blu.Psithon.Fields.Field import Field
 import torch
 import torch.optim as optim
 import time
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.mps.is_available() else "cpu")
 
 unet_model: UNet = UNet(n_channels=2, n_classes=2)
 optimizer = optim.Adam(unet_model.parameters(), lr=0.001)
@@ -24,7 +24,7 @@ sim.loadSimField("/mnt/nfs/raid_mount/simulations/Run_30/", "field_0")
 
 
 # Assuming initial data is complex
-initial_step = sim.fields[fieldName][0].tensor  # first timestep, for example
+initial_step = sim.fields[fieldName][0].field  # first timestep, for example
 
 generatedSim: Simulation = Simulation()
 

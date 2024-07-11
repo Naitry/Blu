@@ -18,7 +18,7 @@ def main():
                                resolution=resolution,
                                dt=1e-6,
                                delta=1e-1,
-                               simulationFolderPath="/mnt/nfs/raid_mount/simulations/")
+                               simulationFolderPath="./simulations/")
 
         U.addField(name="2D_boson_field")
 

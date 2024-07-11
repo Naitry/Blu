@@ -1,16 +1,26 @@
+# forward type annotation
 from __future__ import annotations
-import torch
-from Blu.Psithon.Field import Field, loadFieldComponentDict
-import cv2
-import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-from io import BytesIO
-from matplotlib import cm
+
+# Typing
 from typing import Optional
 
+# Compute
+import torch
+import numpy as np
 
-class Simulation():
+# Blu
+from Blu.Psithon.Fields.Field import Field, loadFieldComponentDict
+
+# Rendering
+import cv2
+from PIL import Image
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+# File IO
+from io import BytesIO
+''
+class Simulation:
     def __init__(self,
                  fields: dict[str, list[Field]] = None):
         self.fields = dict[str, list[Field]]
@@ -33,7 +43,7 @@ class Simulation():
 
     def loadSimField(self,
                      simDir: str,
-                     fieldName: str) -> Simulation:
+                     fieldName: str) -> None:
 
         filePath: str = simDir + fieldName + ".hdf5"
         print(filePath)
@@ -118,9 +128,9 @@ class Simulation():
             entropies.append(f.calculateEntropy())
 
             # Decompose the tensor into its components
-            absField = torch.abs(f.tensor)
-            realField = torch.real(f.tensor)
-            imagField = torch.imag(f.tensor)
+            absField = torch.abs(f.field)
+            realField = torch.real(f.field)
+            imagField = torch.imag(f.field)
 
             # Convert each component to an image
             absImg = self.tensorToImage(absField, 'twilight_shifted')

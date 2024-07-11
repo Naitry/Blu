@@ -7,7 +7,7 @@ def GaussianWavePacket(packetSize: int,
                        sigma: float = 20.0,
                        k: Optional[torch.Tensor] = None,
                        dtype: torch.dtype = torch.float32,
-                       device: torch.device = torch.device('cuda')) -> torch.Tensor:
+                       device: torch.device = torch.device('mps')) -> torch.Tensor:
     """
     Generate an N-dimensional Gaussian wave packet.
 

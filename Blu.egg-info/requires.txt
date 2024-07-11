@@ -1,0 +1,13 @@
+openai-whisper>=20231117
+elevenlabs>=0.2.27
+matplotlib>=3.8.2
+openai>=1.1.0
+flask>=2.3.3
+transformers>=4.37.2
+datasets>=2.16.1
+gevent>=23.9.1
+flask-cors>=3
+anthropic>=0.19.0
+torch>=2.2.1
+numpy>=1.26.4
+pytest>=8.1.1

@@ -1,17 +1,10 @@
 import csv
 import torch
-from torch import optim
-from torch.nn import MSELoss, KLDivLoss
 from torch.nn import functional as F
-import numpy as np
-from matplotlib import cm
-from PIL import Image
 import random
-from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
-from Blu.Psithon.Universe import Universe
-from Blu.Psithon.Field import Field
-from Blu.Psithon.autoencoderModel import HybridAutoencoder
+from Blu.Psithon.Fields.Field import Field
+from Blu.Psithon.models.autoencoderModel import HybridAutoencoder
 
 
 
@@ -30,7 +23,7 @@ def generate_random_field(resolution, minParticles, maxParticles, minPacketSize,
 
         field.addWavePacket(packetSize=packetSize, k=k, position=position)
 
-    return field.tensor
+    return field.field
 
 
 def complex_mse_loss(output, target):
@@ -106,7 +99,7 @@ def generateField(autoencoder, device: str):
         autoencoder: The autoencoder model which includes a decoder.
         numSamples: The number of latent space samples to generate.
         latentChannels: The number of channels in the latent space (e.g., 2 for two channels).
-        device: The device type ('cpu' or 'cuda') where the tensors should be processed.
+        device: The device type ('cpu' or 'mps') where the tensors should be processed.
 
     Returns:
         torch.Tensor: The decoded frames from the autoencoder.
@@ -188,17 +181,17 @@ def train_model(autoencoder, i, epochs, batch_size, resolution, minParticles, ma
 
 
             if (epoch % 50 == 0):
-                startVector = autoencoder.encoder(testFieldA.tensor.unsqueeze(0).unsqueeze(0).to(device))
-                endVector = autoencoder.encoder(testFieldB.tensor.unsqueeze(0).unsqueeze(0).to(device))
+                startVector = autoencoder.encoder(testFieldA.field.unsqueeze(0).unsqueeze(0).to(device))
+                endVector = autoencoder.encoder(testFieldB.field.unsqueeze(0).unsqueeze(0).to(device))
                 guess_fields = interpolate_fields(autoencoder, startVector, endVector, 5, device, resolution)
-                guessA = Field(name="guessA", field=autoencoder.forward(testFieldA.tensor.unsqueeze(0).unsqueeze(0).to(device)).squeeze(0).squeeze(0))
-                guessB = Field(name="guessB", field=autoencoder.forward(testFieldB.tensor.unsqueeze(0).unsqueeze(0).to(device)).squeeze(0).squeeze(0))
+                guessA = Field(name="guessA", field=autoencoder.forward(testFieldA.field.unsqueeze(0).unsqueeze(0).to(device)).squeeze(0).squeeze(0))
+                guessB = Field(name="guessB", field=autoencoder.forward(testFieldB.field.unsqueeze(0).unsqueeze(0).to(device)).squeeze(0).squeeze(0))
                 random = generateField(autoencoder, device)
                 guessA.saveImage(filepath=f"./guessA.png")
                 guessB.saveImage(filepath=f"./guessB.png")
                 random.saveImage(filepath=f"./testDecode.png")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.mps.is_available() else "cpu")
 
 for i in range(16, 17):
     autoencoder = HybridAutoencoder(i).to(device)

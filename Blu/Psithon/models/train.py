@@ -1,6 +1,6 @@
-from Blu.Psithon.model import UNet
+from Blu.Psithon.models.model import UNet
 from Blu.Psithon.Simulation import Simulation
-from Blu.Psithon.DataSet import QuantumFieldDataset, QuantumFieldDatasetSingle
+from Blu.Psithon.DataSet import QuantumFieldDataset
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -39,7 +39,7 @@ def save_image(tensor, filepath_prefix):
     abs_img.save(f"{filepath_prefix}_abs.png")
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.mps.is_available() else "cpu")
 # device = torch.device('cpu')
 torch.set_num_threads(int(torch.get_num_threads() * 1.9))
 print(f"Training on device: {device}")

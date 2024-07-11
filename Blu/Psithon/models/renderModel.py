@@ -1,6 +1,6 @@
 import torch
 from torchviz import make_dot
-from Blu.Psithon.model import UNet  # Ensure your model is accessible
+from Blu.Psithon.models.model import UNet  # Ensure your model is accessible
 
 
 # Assuming your U-Net takes 3 channels input and outputs 2 classes

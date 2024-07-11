@@ -1,24 +1,26 @@
-# for forward type annotation (recursive data structure with annotation)
+# forward type annotation
 from __future__ import annotations
 
-# typing
+# Typing
 from typing import Optional
 
-# compute
+# Compute
 import torch
 import numpy as np
 
-# Blu components
+# Blu
 from Blu.Math.DifferentialGeometry import laplacianLegacy as Laplacian
-from Blu.Psithon.GaussianWavePacket import GaussianWavePacket
-from Blu.Utils.Terminal import clearTerminal, getTerminalSize, arrayToText, arrayToTextColored
+from Blu.Psithon.Fields.GaussianWavePacket import GaussianWavePacket
+from Blu.Utils.Terminal import (clearTerminal,
+                                getTerminalSize,
+                                arrayToTextColored)
 
-# Data output
+# Rendering and Output
 from PIL import Image
 from matplotlib import cm
 import h5py
 
-# Suppress Warning
+# Warnings
 import warnings
 
 # Function to suppress specific UserWarnings
@@ -37,25 +39,24 @@ BLU_PSITHON_defaultDataTypeComponent: torch.dtype = torch.float16
 
 
 class Field:
-
     def __init__(self,
                  name: str,
+                 device: torch.device,
                  field: Optional[torch.Tensor] = None,
                  spatialDimensions: int = BLU_PSITHON_defaultDimensions,
                  resolution: int = BLU_PSITHON_defaultResolution,
-                 dtype: torch.dtype = BLU_PSITHON_defaultDataType,
-                 device: torch.device = torch.device('cuda')):
+                 dtype: torch.dtype = BLU_PSITHON_defaultDataType):
         self.name = name
-        self.tensor: torch.Tensor
+        self.field: torch.Tensor
         self.spatialDimensions: int = spatialDimensions
         self.resolution: int = resolution
         if field is None:
-            self.tensor = torch.zeros(size=[resolution] * spatialDimensions,
-                                      dtype=dtype,
-                                      device=device,
-                                      requires_grad=False)
+            self.field = torch.zeros(size=[resolution] * spatialDimensions,
+                                     dtype=dtype,
+                                     device=device,
+                                     requires_grad=False)
         else:
-            self.tensor = field
+            self.field = field
 
     def addWavePacket(self,
                       packetSize: int,
@@ -63,7 +64,7 @@ class Field:
                       k: list[float] = None,
                       position: Optional[list[float]] = None,
                       dtype: torch.dtype = torch.float32,
-                      device: torch.device = torch.device('cuda')) -> None:
+                      device: torch.device = torch.device('mps')) -> None:
         """
         Place a Gaussian wave packet into the field at a specified position.
 
@@ -79,14 +80,14 @@ class Field:
             position = [self.resolution // 2] * self.spatialDimensions
 
         # Ensure that the position and wave vector lists have the same number of dimensions as the field
-        if len(position) != self.tensor.dim():
+        if len(position) != self.field.dim():
             raise ValueError("Position must have the same number of dimensions as the field")
-        if len(k) != self.tensor.dim():
+        if len(k) != self.field.dim():
             raise ValueError("Wave vector (k) must have the same number of dimensions as the field")
 
         # Generate the Gaussian wave packet
         wavePacket = GaussianWavePacket(packetSize=packetSize,
-                                        dimensions=self.tensor.dim(),
+                                        dimensions=self.field.dim(),
                                         sigma=sigma,
                                         k=torch.tensor(data=k,
                                                        dtype=torch.float32,
@@ -106,10 +107,10 @@ class Field:
 
             # Adjust start and end positions if they are out of the field's boundaries
             startPos = max(min(startPos,
-                               self.tensor.size(dim) - 1),
+                               self.field.size(dim) - 1),
                            0)
             endPos = max(min(endPos,
-                             self.tensor.size(dim)),
+                             self.field.size(dim)),
                          0)
 
             # Calculate the slice for the wave packet
@@ -125,11 +126,11 @@ class Field:
 
         # Place the wave packet into the field at the specified position
         # The ellipsis (...) allows for slicing in N dimensions
-        self.tensor[tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
+        self.field[tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
 
     def calculateEntropy(self) -> float:
         # Calculate the probability distribution from the wave function
-        probabilityDistribution = (torch.abs(self.tensor) ** 2).type(torch.float64)
+        probabilityDistribution = (torch.abs(self.field) ** 2).type(torch.float32)
         # Ensure normalization
         probabilityDistribution.divide_(torch.sum(probabilityDistribution))
 
@@ -155,22 +156,22 @@ class Field:
         """
 
         # Initialize potential
-        V = torch.zeros_like(self.tensor)
+        V = torch.zeros_like(self.field)
 
         # Calculate laplacian
-        laplaceField: torch.Tensor = Laplacian(field=self.tensor,
+        laplaceField: torch.Tensor = Laplacian(field=self.field,
                                                delta=delta)
 
         # Iterate according to the time dependent Schrödinger equation
-        self.tensor.add_(-1j * dt * (-0.5 * laplaceField + V))
+        self.field.add_(-1j * dt * (-0.5 * laplaceField + V))
 
         # Apply boundary conditions for n-dimensions
-        for dim in range(self.tensor.dim()):
+        for dim in range(self.field.dim()):
             # Set the first and last index along each dimension to 0
-            self.tensor.index_fill_(dim,
-                                    torch.tensor([0, self.tensor.size(dim) - 1],
-                                                 device=device),
-                                    0)
+            self.field.index_fill_(dim,
+                                   torch.tensor([0, self.field.size(dim) - 1],
+                                                device=device),
+                                   0)
         return self
 
     def saveHDF5(self,
@@ -178,10 +179,10 @@ class Field:
                  entropy: Optional[float],
                  filepath: str) -> None:
         # Convert tensor to ComplexFloat if it's not already
-        if self.tensor.dtype == torch.complex32:  # ComplexHalf in PyTorch is torch.complex32
-            converted_tensor = self.tensor.to(torch.complex64)  # Convert to ComplexFloat
+        if self.field.dtype == torch.complex32:  # ComplexHalf in PyTorch is torch.complex32
+            converted_tensor = self.field.to(torch.complex64)  # Convert to ComplexFloat
         else:
-            converted_tensor = self.tensor
+            converted_tensor = self.field
 
         entropy = entropy or self.calculateEntropy()
         with h5py.File(filepath,
@@ -204,10 +205,10 @@ class Field:
 
     def saveImage(self,
                   filepath: str) -> None:
-        print(self.tensor.size())
-        absField: np.ndarray = torch.abs(self.tensor).cpu().detach().numpy()
-        realField: np.ndarray = torch.real(self.tensor).cpu().detach().numpy()
-        imagField: np.ndarray = torch.imag(self.tensor).cpu().detach().numpy()
+        print(self.field.size())
+        absField: np.ndarray = torch.abs(self.field).cpu().detach().numpy()
+        realField: np.ndarray = torch.real(self.field).cpu().detach().numpy()
+        imagField: np.ndarray = torch.imag(self.field).cpu().detach().numpy()
 
         def arrayToImage(arr: np.ndarray,
                          cmap):
@@ -226,11 +227,11 @@ class Field:
                                       cm.spring)
 
         combinedImg: Image = Image.new(mode='RGB',
-                                       size=(2 * self.tensor.size(0), self.tensor.size(1)))
+                                       size=(2 * self.field.size(0), self.field.size(1)))
         combinedImg.paste(im=absImg,
                           box=(0, 0))
         combinedImg.paste(im=realImg,
-                          box=(self.tensor.size(0), 0))
+                          box=(self.field.size(0), 0))
 
         combinedImg.save(filepath)
 
@@ -240,10 +241,10 @@ class Field:
             clearTerminal()
             # Get terminal size and adjust for aspect ratio of the tensor
         columns, lines = getTerminalSize()
-        aspect_ratio = self.tensor.size(1) / self.tensor.size(0)
+        aspect_ratio = self.field.size(1) / self.field.size(0)
         text_width = columns
         text_height = int(text_width * aspect_ratio)
-        absField: np.ndarray = torch.abs(self.tensor).cpu().numpy()
+        absField: np.ndarray = torch.abs(self.field).cpu().numpy()
         print(arrayToTextColored(arr=absField,
                                  width=text_width,
                                  height=text_height),
@@ -271,7 +272,7 @@ class Field:
 
             realPart = torch.Tensor(f[real_dataset_name][:])
             imagPart = torch.Tensor(f[imaginary_dataset_name][:])
-            self.tensor = torch.complex(real=realPart, imag=imagPart)
+            self.field = torch.complex(real=realPart, imag=imagPart)
 
             if name_dataset_name in f:
                 self.name = f[name_dataset_name][:].astype(str)
