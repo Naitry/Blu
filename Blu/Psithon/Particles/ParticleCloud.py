@@ -1,9 +1,47 @@
+# Compute
 import torch
+from sympy.physics.mechanics import Particle
+
+# Blu
+from Blu.Psithon.DefaultDefinitions import *
 
 
 class ParticleCloud:
     def __init__(self,
-                 name: str):
+                 name: str,
+                 device: torch.device,
+                 dtype: torch.dtype = BLU_PSITHON_defaultDataType):
+        self.particles: torch.Tensor = torch.tensor([], dtype=dtype, device=device)
         self.name: str = name
+        # main object: a tensor of shape {numParticles, {2}, spatialDimensions}
         self.particleCount: int = 0
-        self.particles: torch.Tensor
+        self.spatialDimensions: int = 3
+        self.dimensions: int = self.spatialDimensions + 1
+        self.dtype: torch.dtype = dtype
+        self.device: torch.device = device
+        # interaction values
+        self.interactions: dict[str, torch.Tensor] = {}
+
+    def addParticle(self,
+                    position: torch.Tensor = None,
+                    velocity: torch.Tensor = None) -> None:
+        if position.shape is not [1, 1, self.spatialDimensions]:
+            print(f"Cannot use a position shape of {position.shape}, this particle cloude requires {[1, 1, self.spatialDimensions]}")
+            return
+        if velocity.shape is not [1, 1, self.spatialDimensions]:
+            print(f"Cannot use a velocity shape of {position.shape}, this particle cloude requires {[1, 1, self.spatialDimensions]}")
+            return
+        position = position or ((2 * torch.rand(size=(1, 1, self.spatialDimensions),
+                                                dtype=self.dtype,
+                                                device=self.device))
+                                - 1)
+        velocity = velocity or ((2 * torch.rand(size=(1, 1, self.spatialDimensions),
+                                                dtype=self.dtype,
+                                                device=self.device))
+                                - 1)
+        newParticle: torch.Tensor = torch.cat((position, velocity), dim=1)
+        self.particles = torch.cat((self.particles, newParticle), dim=-0)
+
+
+def setParticleCount(self):
+    self.particleCount = self.particles.shape[0]

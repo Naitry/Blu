@@ -14,6 +14,7 @@ from Blu.Psithon.Fields.GaussianWavePacket import GaussianWavePacket
 from Blu.Utils.Terminal import (clearTerminal,
                                 getTerminalSize,
                                 arrayToTextColored)
+from Blu.Psithon.DefaultDefinitions import *
 
 # Rendering and Output
 from PIL import Image
@@ -27,15 +28,7 @@ import warnings
 warnings.filterwarnings("ignore",
                         message="ComplexHalf support is experimental and many operators don't support it yet.*")
 
-# Default simulation size
-BLU_PSITHON_defaultDimensions: int = 2
-BLU_PSITHON_defaultResolution: int = 1000
 
-# Primary data type for the field
-BLU_PSITHON_defaultDataType: torch.dtype = torch.cfloat
-
-# Floating point data type which will be able to represent one of the complex components
-BLU_PSITHON_defaultDataTypeComponent: torch.dtype = torch.float16
 
 
 class Field:
@@ -44,14 +37,18 @@ class Field:
                  device: torch.device,
                  field: Optional[torch.Tensor] = None,
                  spatialDimensions: int = BLU_PSITHON_defaultDimensions,
+                 fieldRank: int = BLU_PSITHON_defaultRank,
                  resolution: int = BLU_PSITHON_defaultResolution,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType):
         self.name = name
+        # main object: a tensor
         self.field: torch.Tensor
         self.spatialDimensions: int = spatialDimensions
+        self.dimensions: int = spatialDimensions + 1
         self.resolution: int = resolution
+        self.dtype: torch.dtype = dtype
         if field is None:
-            self.field = torch.zeros(size=[resolution] * spatialDimensions,
+            self.field = torch.zeros(size=[self.dimensions**(fieldRank - 1)] + [resolution] * self.spatialDimensions,
                                      dtype=dtype,
                                      device=device,
                                      requires_grad=False)
