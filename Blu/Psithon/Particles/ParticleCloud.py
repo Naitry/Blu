@@ -1,9 +1,8 @@
 # Compute
 import torch
-from sympy.physics.mechanics import Particle
 
 # Blu
-from Blu.Psithon.DefaultDefinitions import *
+from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultDataType)
 
 
 class ParticleCloud:

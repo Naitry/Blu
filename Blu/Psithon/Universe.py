@@ -80,13 +80,13 @@ class Universe:
         :return: none
         """
         self.fields.append(Field(name=name,
-                                 spatialDimensions=2,
+                                 spatialDimensions=self.spatialDimensions,
                                  resolution=self.resolution,
                                  dtype=self.dtype,
                                  device=self.device))
 
-    def addField(self,
-                 name: str) -> None:
+    def addParticleCloud(self,
+                         name: str) -> None:
         """
         add a new field to the Universe
 
@@ -94,16 +94,16 @@ class Universe:
 
         :return: none
         """
-        self.fields.append(Field(name=name,
-                                 spatialDimensions=2,
-                                 resolution=self.resolution,
-                                 dtype=self.dtype,
-                                 device=self.device))
+        self.fields.append(ParticleCloud(name=name,
+                                         spatialDimensions=self.spatialDimensions,
+                                         resolution=self.resolution,
+                                         dtype=self.dtype,
+                                         device=self.device))
 
-    def update(self,
-               dt: Optional[float] = None,
-               delta: Optional[float] = None,
-               device: Optional[torch.device] = None) -> None:
+    def updateFields(self,
+                     dt: Optional[float] = None,
+                     delta: Optional[float] = None,
+                     device: Optional[torch.device] = None) -> None:
         """
         update each field in the universe
 
@@ -116,6 +116,25 @@ class Universe:
         """
         for field in self.fields:
             field.update(dt=dt or self.dt,
+                         delta=delta or self.delta,
+                         device=device or self.device)
+
+    def updateParticleCloud(self,
+                            dt: Optional[float] = None,
+                            delta: Optional[float] = None,
+                            device: Optional[torch.device] = None) -> None:
+        """
+        update each field in the universe
+
+        :param dt: the magnitude of the timestep forward which will be taken
+        :param delta: the magnitude of the distance between points in the system, heavily effects stability
+        :param device: the device which the calculation will be made on
+        this should usually be default, to keep the data on one device
+
+        :return: none
+        """
+        for cloud in self.particles:
+            cloud.update(dt=dt or self.dt,
                          delta=delta or self.delta,
                          device=device or self.device)
 

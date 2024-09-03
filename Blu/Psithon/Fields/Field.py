@@ -14,7 +14,10 @@ from Blu.Psithon.Fields.GaussianWavePacket import GaussianWavePacket
 from Blu.Utils.Terminal import (clearTerminal,
                                 getTerminalSize,
                                 arrayToTextColored)
-from Blu.Psithon.DefaultDefinitions import *
+from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
+                                            BLU_PSITHON_defaultDataType,
+                                            BLU_PSITHON_defaultDimensions,
+                                            BLU_PSITHON_defaultResolution)
 
 # Rendering and Output
 from PIL import Image
@@ -27,8 +30,6 @@ import warnings
 # Function to suppress specific UserWarnings
 warnings.filterwarnings("ignore",
                         message="ComplexHalf support is experimental and many operators don't support it yet.*")
-
-
 
 
 class Field:
