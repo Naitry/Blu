@@ -1,6 +1,5 @@
 import multiprocessing as mp
 from Blu.Psithon.Universe import Universe
-import torch
 import random
 
 
@@ -14,21 +13,12 @@ def main():
     resolution: int = 1000  # Resolution of the universe
     safeRegion: int = maxPacketSize // 2
 
-    print(f"CUDA available: {torch.cuda.is_available()}")
-    print(f"CUDA version: {torch.version.cuda}")
-    print(f"GPU device count: {torch.cuda.device_count()}")
-    if torch.cuda.is_available():
-        print(f"Current GPU: {torch.cuda.get_device_name(0)}")
-
-    device: torch.device = torch.device("cuda")
-
     for simulationRun in range(numSimulationRuns):
         U: Universe = Universe(spatialDimensions=2,
                                resolution=resolution,
                                dt=1e-6,
                                delta=1e-1,
-                               simulationFolderPath="/home/naitry/Dev/sims/out/",
-                               device=device)
+                               simulationFolderPath="/mnt/nfs/raid_mount/simulations/")
 
         U.addField(name="2D_boson_field")
 

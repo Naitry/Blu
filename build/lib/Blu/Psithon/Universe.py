@@ -82,7 +82,8 @@ class Universe:
 
     def update(self,
                dt: Optional[float] = None,
-               delta: Optional[float] = None) -> None:
+               delta: Optional[float] = None,
+               device: Optional[torch.device] = None) -> None:
         """
         update each field in the universe
 
@@ -95,7 +96,8 @@ class Universe:
         """
         for field in self.fields:
             field.update(dt=dt or self.dt,
-                         delta=delta or self.delta)
+                         delta=delta or self.delta,
+                         device=device or self.device)
 
     def saveSimulation(self) -> None:
         """

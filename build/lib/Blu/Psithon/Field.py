@@ -49,7 +49,6 @@ class Field:
         self.tensor: torch.Tensor
         self.spatialDimensions: int = spatialDimensions
         self.resolution: int = resolution
-        self.device: torch.device = device
         if field is None:
             self.tensor = torch.zeros(size=[resolution] * spatialDimensions,
                                       dtype=dtype,
@@ -63,7 +62,8 @@ class Field:
                       sigma: float = 20.0,
                       k: list[float] = None,
                       position: Optional[list[float]] = None,
-                      dtype: torch.dtype = torch.float32) -> None:
+                      dtype: torch.dtype = torch.float32,
+                      device: torch.device = torch.device('cuda')) -> None:
         """
         Place a Gaussian wave packet into the field at a specified position.
 
@@ -90,9 +90,9 @@ class Field:
                                         sigma=sigma,
                                         k=torch.tensor(data=k,
                                                        dtype=torch.float32,
-                                                       device=self.device),
+                                                       device=device),
                                         dtype=dtype,
-                                        device=self.device)
+                                        device=device)
 
         # Initialize slices for the field and the wave packet
         fieldSlices = []
@@ -142,7 +142,8 @@ class Field:
 
     def update(self,
                dt: float,
-               delta: float) -> Field:
+               delta: float,
+               device: torch.device) -> Field:
         """
         Update the field for an n-dimensional space.
 
@@ -168,7 +169,7 @@ class Field:
             # Set the first and last index along each dimension to 0
             self.tensor.index_fill_(dim,
                                     torch.tensor([0, self.tensor.size(dim) - 1],
-                                                 device=self.device),
+                                                 device=device),
                                     0)
         return self
 
@@ -276,11 +277,8 @@ class Field:
                 self.name = f[name_dataset_name][:].astype(str)
 
 
-def loadFieldFromHDF5(filePath: str,
-                      spatialDimensions: int = 2,
-                      resolution: int = 1000,
-                      dtype: torch.dtype = torch.cfloat,
-                      device: torch.device = torch.device('cpu'),
+def loadFieldFromHDF5(filePath: str, spatialDimensions: int = 2, resolution: int = 1000,
+                      dtype: torch.dtype = torch.cfloat, device: torch.device = torch.device('cpu'),
                       timestep: Optional[int] = None) -> Field:
     """
     Function to load a field from an HDF5 file, possibly for a specific timestep.
