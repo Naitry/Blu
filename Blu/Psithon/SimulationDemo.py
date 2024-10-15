@@ -14,13 +14,7 @@ def main():
     resolution: int = 1000  # Resolution of the universe
     safeRegion: int = maxPacketSize // 2
 
-    print(f"CUDA available: {torch.cuda.is_available()}")
-    print(f"CUDA version: {torch.version.cuda}")
-    print(f"GPU device count: {torch.cuda.device_count()}")
-    if torch.cuda.is_available():
-        print(f"Current GPU: {torch.cuda.get_device_name(0)}")
-
-    device: torch.device = torch.device("cuda")
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     for simulationRun in range(numSimulationRuns):
         U: Universe = Universe(spatialDimensions=2,
