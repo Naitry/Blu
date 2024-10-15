@@ -57,7 +57,7 @@ class Universe:
         self.c: float = speedLimit
         self.dt: float = dt
         self.delta: float = delta
-        self.fields: list[Field] = fields
+        self.fields: list[Field] = fields or []
         self.particles: list[ParticleCloud] = particles
         self.dtype: torch.dtype = dtype
         self.device: torch.device = device

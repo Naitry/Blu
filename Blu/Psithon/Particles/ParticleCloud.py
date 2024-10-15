@@ -24,23 +24,26 @@ class ParticleCloud:
     def addParticle(self,
                     position: torch.Tensor = None,
                     velocity: torch.Tensor = None) -> None:
-        if position.shape is not [1, 1, self.spatialDimensions]:
-            print(f"Cannot use a position shape of {position.shape}, this particle cloude requires {[1, 1, self.spatialDimensions]}")
+        if position.shape is not [self.spatialDimensions]:
+            print(f"Cannot use a position shape of {position.shape}, this particle cloud requires {[1, 1, self.spatialDimensions]}")
             return
-        if velocity.shape is not [1, 1, self.spatialDimensions]:
-            print(f"Cannot use a velocity shape of {position.shape}, this particle cloude requires {[1, 1, self.spatialDimensions]}")
+        if velocity.shape is not [self.spatialDimensions]:
+            print(f"Cannot use a velocity shape of {position.shape}, this particle cloud requires {[1, 1, self.spatialDimensions]}")
             return
-        position = position or ((2 * torch.rand(size=(1, 1, self.spatialDimensions),
+        position = position or ((2 * torch.rand(size=(self.spatialDimensions),
                                                 dtype=self.dtype,
-                                                device=self.device))
-                                - 1)
-        velocity = velocity or ((2 * torch.rand(size=(1, 1, self.spatialDimensions),
+                                                device=self.device)) - 1)
+        velocity = velocity or ((2 * torch.rand(size=(self.spatialDimensions),
                                                 dtype=self.dtype,
-                                                device=self.device))
-                                - 1)
-        newParticle: torch.Tensor = torch.cat((position, velocity), dim=1)
-        self.particles = torch.cat((self.particles, newParticle), dim=-0)
+                                                device=self.device)) - 1)
 
+        newParticle: torch.Tensor = torch.stack((position, velocity))
+        self.particles = torch.cat([self.particles, newParticle.unsqueez(0)], dim=-0)
 
-def setParticleCount(self):
-    self.particleCount = self.particles.shape[0]
+    def update(self,
+               fields: torch.Tensor,
+               coupling_matrixes: dict[str, torch.Tensor]):
+        pass
+
+    def setParticleCount(self):
+        self.particleCount = self.particles.shape[0]

@@ -19,7 +19,8 @@ from matplotlib import cm
 
 # File IO
 from io import BytesIO
-''
+
+
 class Simulation:
     def __init__(self,
                  fields: dict[str, list[Field]] = None):

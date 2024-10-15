@@ -34,8 +34,8 @@ warnings.filterwarnings("ignore",
 
 class Field:
     def __init__(self,
-                 name: str,
                  device: torch.device,
+                 name: str,
                  field: Optional[torch.Tensor] = None,
                  spatialDimensions: int = BLU_PSITHON_defaultDimensions,
                  fieldRank: int = BLU_PSITHON_defaultRank,
@@ -140,9 +140,9 @@ class Field:
         return entropy.item()
 
     def update(self,
+               device: torch.device,
                dt: float,
-               delta: float,
-               device: torch.device) -> Field:
+               delta: float) -> Field:
         """
         Update the field for an n-dimensional space.
 
@@ -248,7 +248,9 @@ class Field:
                                  height=text_height),
               end="")
 
-    def loadFromHDF5(self, filePath: str, timestep: Optional[int] = None) -> None:
+    def loadFromHDF5(self,
+                     filePath: str,
+                     timestep: Optional[int] = None) -> None:
         """
         Loads a tensor from an HDF5 file. If timestep is provided, it attempts to load datasets
         for that specific timestep.
@@ -276,8 +278,11 @@ class Field:
                 self.name = f[name_dataset_name][:].astype(str)
 
 
-def loadFieldFromHDF5(filePath: str, spatialDimensions: int = 2, resolution: int = 1000,
-                      dtype: torch.dtype = torch.cfloat, device: torch.device = torch.device('cpu'),
+def loadFieldFromHDF5(filePath: str,
+                      spatialDimensions: int = 2,
+                      resolution: int = 1000,
+                      dtype: torch.dtype = torch.cfloat,
+                      device: torch.device = torch.device('cpu'),
                       timestep: Optional[int] = None) -> Field:
     """
     Function to load a field from an HDF5 file, possibly for a specific timestep.

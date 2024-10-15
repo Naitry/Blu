@@ -15,7 +15,8 @@ setup(name='Blu',
                         "anthropic>=0.19.0",
                         "torch>=2.2.1",
                         "numpy>=1.26.4",
-                        "pytest>=8.1.1"],
+                        "pytest>=8.1.1",
+                        "h5py>=3.11.0"],
       python_requires='>=3.10')
 
 # for dirty arch users
