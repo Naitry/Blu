@@ -1,5 +1,6 @@
 from Blu.Utils.TermColor import printC, paintStr, setColor, resetColor
 
+
 def test_1TermColor():
     print()
     print("TermColor test 1:")
