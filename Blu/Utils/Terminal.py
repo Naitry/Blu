@@ -6,8 +6,20 @@ from PIL import Image
 
 from Blu.Utils.TermColor import paintStr
 
+BLU_pixel_chars: list[str] = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+BLU_color_spectrum: list[str] = ["red",
+                                 "orange",
+                                 "yellow",
+                                 "green",
+                                 "cyan",
+                                 "blue",
+                                 "indigo",
+                                 "violet"]
 
-def arrayToText(arr: np.ndarray, width: int, height: int) -> str:
+
+def arrayToText(arr: np.ndarray,
+                width: int,
+                height: int) -> str:
     """
     Converts a numpy array into a detailed text representation using an expanded range of ASCII characters.
 
@@ -19,31 +31,37 @@ def arrayToText(arr: np.ndarray, width: int, height: int) -> str:
     Returns:
         str: The detailed text representation of the array.
     """
-    chars = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
 
     # Normalize the array only if necessary
-    normalized_arr = arr / arr.max()
+    arr = arr / arr.max()
 
     # Calculate the adjusted width and height based on the aspect ratio of the characters
-    char_aspect_ratio = 0.5
-    adjusted_width = width
-    adjusted_height = int(height * char_aspect_ratio)
+    char_aspect_ratio: float = 0.5
+    adjusted_width: int = width
+    adjusted_height: int = int(height * char_aspect_ratio)
 
     # Resize the array to the target dimensions
-    img = Image.fromarray((normalized_arr * 255).astype(np.uint8))
-    img = img.resize((adjusted_width, adjusted_height), Image.NEAREST)
-    resized_arr = np.array(img)
+    print(arr.size)
+    img: Image.Image = Image.fromarray((arr * 255).astype(np.uint8))
+    img = img.resize((adjusted_width,
+                      adjusted_height),
+                     Image.NEAREST)
+    arr = np.array(img)
 
     # Convert the resized array to a text representation
-    lines = ""
-    for row in resized_arr:
+    lines: str = ""
+
+    chars: list[str] = BLU_pixel_chars
+    for row in arr:
         line = "".join((chars[int(pixel / 255 * (len(chars) - 1))]) for pixel in row)
         lines += line + "\n"
 
     return lines
 
 
-def arrayToTextColored(arr: np.ndarray, width: int, height: int) -> str:
+def arrayToTextColored(arr: np.ndarray,
+                       width: int,
+                       height: int) -> str:
     """
     Converts a numpy array into a detailed, colorized text representation using an expanded range of ASCII characters.
 
@@ -55,33 +73,45 @@ def arrayToTextColored(arr: np.ndarray, width: int, height: int) -> str:
     Returns:
         str: The detailed, colorized text representation of the array.
     """
-    chars = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
-    color_spectrum = ["red", "orange", "yellow", "green", "cyan", "blue", "indigo", "violet"]
-
     # Normalize the array only if necessary
-    normalized_arr = arr / arr.max()
+    if arr.max() != 0:
+        arr = arr / arr.max()
 
     # Calculate the adjusted width and height based on the aspect ratio of the characters
-    char_aspect_ratio = 0.5
-    adjusted_width = width
-    adjusted_height = int(height * char_aspect_ratio)
+    char_aspect_ratio: float = 0.5
+    adjusted_width: int = width
+    adjusted_height: int = int(height * char_aspect_ratio)
 
+    print(arr.size)
+    print(arr)
     # Resize the array to the target dimensions
-    img = Image.fromarray((normalized_arr * 255).astype(np.uint8))
-    img = img.resize((adjusted_width, adjusted_height), Image.NEAREST)
-    resized_arr = np.array(img)
+    img: Image.Image = Image.fromarray((arr * 255).astype(np.uint8))
+    img = img.resize((adjusted_width,
+                      adjusted_height),
+                     Image.NEAREST)
+    arr = np.array(img)
 
-    # Convert the resized array to a colorized text representation
-    lines = ""
-    for row in resized_arr:
+    chars: list[str] = BLU_pixel_chars
+    spectrum: list[str] = BLU_color_spectrum
+
+    # convert the resized array to a colorized text representation
+    lines: str = ""
+
+    # iterate through each row in the image
+    for row in arr:
+        # iterate through each pixel in the row
         for pixel in row:
-            # Map the pixel intensity to a color in the spectrum
-            color_index = int(pixel / 255 * (len(color_spectrum) - 1))
-            color_name = color_spectrum[color_index]
-            char = chars[int(pixel / 255 * (len(chars) - 1))]
-            # Use paintStr to apply the color
-            colored_char = paintStr(char, color_name)
-            lines += colored_char
+            # map the pixel intensity to a color in the spectrum
+            colorIndex: int = int(pixel / 255 * (len(spectrum) - 1))
+            # map the color index to the name of the color
+            colorName: str = spectrum[colorIndex]
+            # map the pixel intensity to a char
+            char: str = chars[int(pixel / 255 * (len(chars) - 1))]
+            # use paintStr to apply the color
+            coloredChar = paintStr(char, colorName)
+            # append the char to the the -
+            lines += coloredChar
+        # newline
         lines += "\n"
 
     return lines

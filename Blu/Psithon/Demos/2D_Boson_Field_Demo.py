@@ -29,6 +29,8 @@ def main():
                               k=k,
                               position=packetPosition)
 
+    U.fields[0].printField(clear=False)
+
     # Run the simulation
     U.runSimulation(numSteps=int(3e7))
 

@@ -19,7 +19,7 @@ from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
                                             BLU_PSITHON_defaultDimensions,
                                             BLU_PSITHON_defaultResolution)
 
-# Rendering and Output
+# Rendering and I/O
 from PIL import Image
 from matplotlib import cm
 import h5py
@@ -27,20 +27,20 @@ import h5py
 # Warnings
 import warnings
 
-# Function to suppress specific UserWarnings
+# Suppress specific UserWarnings
 warnings.filterwarnings("ignore",
                         message="ComplexHalf support is experimental and many operators don't support it yet.*")
 
 
 class Field:
     def __init__(self,
-                 device: torch.device,
                  name: str,
-                 field: Optional[torch.Tensor] = None,
+                 device: torch.device,
+                 dtype: torch.dtype = BLU_PSITHON_defaultDataType,
                  spatialDimensions: int = BLU_PSITHON_defaultDimensions,
-                 fieldRank: int = BLU_PSITHON_defaultRank,
                  resolution: int = BLU_PSITHON_defaultResolution,
-                 dtype: torch.dtype = BLU_PSITHON_defaultDataType):
+                 fieldRank: int = BLU_PSITHON_defaultRank,
+                 field: Optional[torch.Tensor] = None):
         # set field name
         self.name: str = name
 
@@ -57,7 +57,11 @@ class Field:
         # CASE: field argument is none
         if field is None:
             # generate field
-            self.field = torch.zeros(size=[self.dimensions**(fieldRank - 1)] + [resolution] * self.spatialDimensions,
+            a: list = [self.dimensions**(fieldRank - 1)]
+            b: list = [resolution] * self.spatialDimensions
+            dims: list = a + b
+            print('a: ', a, '; b: ', b, '; dims: ', dims)
+            self.field = torch.zeros(size=dims,
                                      dtype=dtype,
                                      device=device,
                                      requires_grad=False)
@@ -82,23 +86,31 @@ class Field:
         :return: None. The function modifies the field in place.
         """
         device: torch.device = self.device
+
         # CASE: position argument is none
         if position is None:
             # set position to the middle of the field
-            position = [self.resolution // 2] * self.spatialDimensions
+            position = [self.resolution // 2] * self.dimensions
+
+        positionLength: int = len(position)
+        waveVectorLength: int = len(k)
+        fieldDims: int = self.field.dim() - 1
 
         # CASE: length of position != # of field dimensions
-        if len(position) != self.field.dim():
+        if positionLength != fieldDims:
             line1: str = "Position must have the same number of dimensions as the field\n"
-            line2: str = "len(position): %d != fied.dim: %d" % (len(position), self.field.dim())
+            line2: str = "positionLength: %d != fieldDims: %d" % (positionLength, fieldDims)
             raise ValueError(line1 + line2)
+
         # CASE: length of wave vector != # of field dimensions
-        if len(k) != self.field.dim():
-            raise ValueError("Wave vector (k) must have the same number of dimensions as the field")
+        elif waveVectorLength != fieldDims:
+            line1: str = "Wave vector (k) must have the same number of dimensions as the field\n"
+            line2: str = "wavevectorlength: %d != fieldDims: %d" % (positionLength, fieldDims)
+            raise ValueError(line1 + line2)
 
         # Generate the Gaussian wave packet
         wavePacket: torch.Tensor = GaussianWavePacket(packetSize=packetSize,
-                                                      dimensions=self.field.dim(),
+                                                      dimensions=fieldDims,
                                                       sigma=sigma,
                                                       k=torch.tensor(data=k,
                                                                      dtype=torch.float32,
@@ -107,8 +119,8 @@ class Field:
                                                       device=device)
 
         # Initialize slices for the field and the wave packet
-        fieldSlices = []
-        wavePacketSlices = []
+        fieldSlices: list = []
+        wavePacketSlices: list = []
 
         # Construct slices based on the specified position and the packet size
         for dim, pos in enumerate(position):
@@ -167,16 +179,16 @@ class Field:
         """
 
         # Initialize potential
-        V = torch.zeros_like(self.field)
+        v: torch.Tensor = torch.zeros_like(self.field)
 
         # Calculate laplacian
         laplaceField: torch.Tensor = Laplacian(field=self.field,
                                                delta=delta)
 
-        # Iterate according to the time dependent Schrödinger equation
-        self.field.add_(-1j * dt * (-0.5 * laplaceField + V))
+        # update the field according to the time dependent Schrödinger equation
+        self.field.add_(-1j * dt * (-0.5 * laplaceField + v))
 
-        # Apply boundary conditions for n-dimensions
+        # iterate over each dimenshion and apply boundary conditions
         for dim in range(self.field.dim()):
             # Set the first and last index along each dimension to 0
             self.field.index_fill_(dim,
@@ -248,17 +260,30 @@ class Field:
 
     def printField(self,
                    clear: bool = True) -> None:
+        # CASE: clear terminal is true
         if clear:
             clearTerminal()
-            # Get terminal size and adjust for aspect ratio of the tensor
+
+        # get terminal size
+        columns: int
+        lines: int
         columns, lines = getTerminalSize()
-        aspect_ratio = self.field.size(1) / self.field.size(0)
-        text_width = columns
-        text_height = int(text_width * aspect_ratio)
+
+        # adjust for aspect ratio of the tensor
+        aspectRatio: float = self.field.size(1) / self.field.size(0)
+        textWidth: int = columns
+        textHeight: int = int(textWidth * aspectRatio)
+
+        # take the absolute value of the field
         absField: np.ndarray = torch.abs(self.field).cpu().numpy()
+
+        print("array size: ", absField.shape)
+        print("tensor size: ", list(self.field.shape))
+
+        # convert to colored text and print the field
         print(arrayToTextColored(arr=absField,
-                                 width=text_width,
-                                 height=text_height),
+                                 width=textWidth,
+                                 height=textHeight),
               end="")
 
     def loadFromHDF5(self,

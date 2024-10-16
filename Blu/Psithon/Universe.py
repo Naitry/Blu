@@ -82,10 +82,10 @@ class Universe:
         :return: none
         """
         self.fields.append(Field(name=name,
-                                 spatialDimensions=self.spatialDimensions,
-                                 resolution=self.resolution,
+                                 device=self.device,
                                  dtype=self.dtype,
-                                 device=self.device))
+                                 spatialDimensions=self.spatialDimensions,
+                                 resolution=self.resolution))
 
     def addParticleCloud(self,
                          name: str) -> None:
@@ -97,10 +97,10 @@ class Universe:
         :return: none
         """
         self.fields.append(ParticleCloud(name=name,
-                                         spatialDimensions=self.spatialDimensions,
-                                         resolution=self.resolution,
+                                         device=self.device,
                                          dtype=self.dtype,
-                                         device=self.device))
+                                         spatialDimensions=self.spatialDimensions,
+                                         resolution=self.resolution))
 
     def updateFields(self,
                      dt: Optional[float] = None,
