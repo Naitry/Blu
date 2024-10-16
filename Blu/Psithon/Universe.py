@@ -102,10 +102,20 @@ class Universe:
                                          spatialDimensions=self.spatialDimensions,
                                          resolution=self.resolution))
 
+    def update(self,
+               dt: Optional[float] = None,
+               delta: Optional[float] = None,
+               device: Optional[torch.device] = None) -> None:
+
+        self.updateParticleClouds(dt=dt,
+                                  delta=delta,
+                                  device=device)
+        self.updateFields(dt=dt,
+                          delta=delta)
+
     def updateFields(self,
                      dt: Optional[float] = None,
-                     delta: Optional[float] = None,
-                     device: Optional[torch.device] = None) -> None:
+                     delta: Optional[float] = None) -> None:
         """
         update each field in the universe
 
@@ -118,8 +128,7 @@ class Universe:
         """
         for field in self.fields:
             field.update(dt=dt or self.dt,
-                         delta=delta or self.delta,
-                         device=device or self.device)
+                         delta=delta or self.delta)
 
     def updateParticleClouds(self,
                              dt: Optional[float] = None,
@@ -294,6 +303,7 @@ class Universe:
                 self.simQueue.put((cpuFields,
                                    entropies,
                                    step))
-            self.update()
+            self.update(dt=self.dt,
+                        delta=self.delta)
 
         self.recordSimEnd()

@@ -13,7 +13,7 @@ from Blu.Math.DifferentialGeometry import laplacianLegacy as Laplacian
 from Blu.Psithon.Fields.GaussianWavePacket import GaussianWavePacket
 from Blu.Utils.Terminal import (clearTerminal,
                                 getTerminalSize,
-                                arrayToTextColored)
+                                tensorToTextColored)
 from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
                                             BLU_PSITHON_defaultDataType,
                                             BLU_PSITHON_defaultDimensions,
@@ -57,11 +57,12 @@ class Field:
         # CASE: field argument is none
         if field is None:
             # generate field
-            a: list = [self.dimensions**(fieldRank - 1)]
-            b: list = [resolution] * self.spatialDimensions
-            dims: list = a + b
-            print('a: ', a, '; b: ', b, '; dims: ', dims)
-            self.field = torch.zeros(size=dims,
+            rankPortion: list = [self.dimensions**(fieldRank - 1)]
+            spatialPortion: list = [resolution] * self.spatialDimensions
+            fieldShape: list = rankPortion + spatialPortion
+
+            # new empty field
+            self.field = torch.zeros(size=fieldShape,
                                      dtype=dtype,
                                      device=device,
                                      requires_grad=False)
@@ -85,8 +86,6 @@ class Field:
         :param dtype: Data type for the wave packet tensor.
         :return: None. The function modifies the field in place.
         """
-        device: torch.device = self.device
-
         # CASE: position argument is none
         if position is None:
             # set position to the middle of the field
@@ -114,9 +113,9 @@ class Field:
                                                       sigma=sigma,
                                                       k=torch.tensor(data=k,
                                                                      dtype=torch.float32,
-                                                                     device=device),
+                                                                     device=self.device),
                                                       dtype=dtype,
-                                                      device=device)
+                                                      device=self.device)
 
         # Initialize slices for the field and the wave packet
         fieldSlices: list = []
@@ -165,14 +164,12 @@ class Field:
         return entropy.item()
 
     def update(self,
-               device: torch.device,
                dt: float,
                delta: float) -> Field:
         """
         Update the field for an n-dimensional space.
 
         :param: self: The input field as an n-dimensional torch tensor.
-        :param: device: The torch device on which to perform the calculations.
         :param: delta: The spacing between points in the field.
         :param: dt: Time step for the update.
         :return: The updated field which contains San n-dimensional torch tensor.
@@ -193,7 +190,7 @@ class Field:
             # Set the first and last index along each dimension to 0
             self.field.index_fill_(dim,
                                    torch.tensor([0, self.field.size(dim) - 1],
-                                                device=device),
+                                                device=self.device),
                                    0)
         return self
 
@@ -246,8 +243,8 @@ class Field:
                                      cm.twilight_shifted)
         realImg: Image = arrayToImage(realField,
                                       cm.cool)
-        imagImg: Image = arrayToImage(imagField,
-                                      cm.spring)
+        _imagImg: Image = arrayToImage(imagField,
+                                       cm.spring)
 
         combinedImg: Image = Image.new(mode='RGB',
                                        size=(2 * self.field.size(0), self.field.size(1)))
@@ -270,20 +267,17 @@ class Field:
         columns, lines = getTerminalSize()
 
         # adjust for aspect ratio of the tensor
-        aspectRatio: float = self.field.size(1) / self.field.size(0)
+        aspectRatio: float = self.field[0].size(1) / self.field[0].size(0)
         textWidth: int = columns
         textHeight: int = int(textWidth * aspectRatio)
 
         # take the absolute value of the field
-        absField: np.ndarray = torch.abs(self.field).cpu().numpy()
-
-        print("array size: ", absField.shape)
-        print("tensor size: ", list(self.field.shape))
+        absField: torch.Tensor = torch.abs(self.field[0])
 
         # convert to colored text and print the field
-        print(arrayToTextColored(arr=absField,
-                                 width=textWidth,
-                                 height=textHeight),
+        print(tensorToTextColored(tensor=absField,
+                                  width=textWidth,
+                                  height=textHeight),
               end="")
 
     def loadFromHDF5(self,
