@@ -10,8 +10,11 @@ class ParticleCloud:
                  name: str,
                  device: torch.device,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType):
-        self.particles: torch.Tensor = torch.tensor([], dtype=dtype, device=device)
         self.name: str = name
+
+        self.particles: torch.Tensor = torch.tensor([],
+                                                    dtype=dtype,
+                                                    device=device)
         # main object: a tensor of shape {numParticles, {2}, spatialDimensions}
         self.particleCount: int = 0
         self.spatialDimensions: int = 3

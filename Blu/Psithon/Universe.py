@@ -1,9 +1,5 @@
-# Multithreading
-import multiprocessing as mp
-
 # System
 import os
-import copy
 
 # Typing
 from typing import (Optional,
@@ -20,14 +16,10 @@ from Blu.Psithon.Fields.Field import (Field,
                                       BLU_PSITHON_defaultDataType)
 from Blu.Psithon.Particles.ParticleCloud import ParticleCloud
 
-# Time
-import time
-from datetime import datetime
-
 
 class Universe:
-
     def __init__(self,
+                 device: torch.device,
                  spatialDimensions: int,
                  resolution: int,
                  scale: float,
@@ -36,9 +28,7 @@ class Universe:
                  delta: float,
                  fields: Optional[list[Field]] = None,
                  particles: Optional[list[ParticleCloud]] = None,
-                 dtype: torch.dtype = BLU_PSITHON_defaultDataType,
-                 device: torch.device = torch.device('mps'),
-                 simulationFolderPath: str = '/mnt/nfs/simulations/'):
+                 dtype: torch.dtype = BLU_PSITHON_defaultDataType):
         """
         Universe constructor
 
@@ -63,14 +53,6 @@ class Universe:
         self.fields: list[Field] = fields or []
         self.dtype: torch.dtype = dtype
         self.device: torch.device = device
-        # simulation variables
-        self.simTargetPath: str = simulationFolderPath
-
-        self.simStartTime: Optional[float] = None
-        self.simRunID: Optional[str] = None
-        self.simRunPath: Optional[str] = None
-        self.simQueue: Optional[mp.Queue] = None
-        self.simResultQueue: Optional[mp.Queue] = None
 
     def addField(self,
                  name: str) -> None:
@@ -104,14 +86,12 @@ class Universe:
 
     def update(self,
                dt: Optional[float] = None,
-               delta: Optional[float] = None,
-               device: Optional[torch.device] = None) -> None:
+               delta: Optional[float] = None) -> None:
 
-        self.updateParticleClouds(dt=dt,
-                                  delta=delta,
-                                  device=device)
-        self.updateFields(dt=dt,
-                          delta=delta)
+        self.updateParticleClouds(dt=dt or self.dt,
+                                  delta=delta or self.delta)
+        self.updateFields(dt=dt or self.dt,
+                          delta=delta or self.delta)
 
     def updateFields(self,
                      dt: Optional[float] = None,
@@ -132,8 +112,7 @@ class Universe:
 
     def updateParticleClouds(self,
                              dt: Optional[float] = None,
-                             delta: Optional[float] = None,
-                             device: Optional[torch.device] = None) -> None:
+                             delta: Optional[float] = None) -> None:
         """
         update each field in the universe
 
@@ -146,8 +125,7 @@ class Universe:
         """
         for cloud in self.particles:
             cloud.update(dt=dt or self.dt,
-                         delta=delta or self.delta,
-                         device=device or self.device)
+                         delta=delta or self.delta)
 
     def saveSimulation(self) -> None:
         """
@@ -188,36 +166,6 @@ class Universe:
             self.simResultQueue.put("Error")
             return
 
-    def addSimRunEntry(self) -> None:
-        catalogPath: str = os.path.join(self.simTargetPath, "runCatalog.csv")
-        newEntry: pd.DataFrame = pd.DataFrame({
-            'RunID': [self.simRunID],
-            'StartTime': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
-        })
-        if os.path.exists(catalogPath):
-            runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
-            updatedCatalog: pd.DataFrame = pd.concat([runCatalog, newEntry], ignore_index=True)
-        else:
-            updatedCatalog: pd.DataFrame = newEntry
-        updatedCatalog.to_csv(catalogPath, index=False)
-
-    def recordSimEnd(self) -> None:
-        catalogPath: str = os.path.join(self.simTargetPath,
-                                        "runCatalog.csv")
-        if os.path.exists(catalogPath):
-            runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
-            if self.simRunID in runCatalog['RunID'].values:
-                # If the column does not exist, it will be added
-                runCatalog.loc[runCatalog['RunID'] == self.simRunID, "EndTime"] = datetime.now().strftime(
-                    '%Y-%m-%d %H:%M:%S')
-                runCatalog.to_csv(catalogPath,
-                                  index=False)
-                print(f"Recorded end time for {self.simRunID}.")
-            else:
-                print(f"No entry found for {self.simRunID}.")
-        else:
-            print("Catalog does not exist.")
-
     def setSimRunID(self) -> None:
         """
         Scans the run catalog file to determine what the run ID should be changed to
@@ -242,68 +190,3 @@ class Universe:
             nextIndex = 1  # Start with 1 if no catalog exists
 
         self.simRunID = f"Run_{nextIndex}"
-
-    def runSimulation(self,
-                      numSteps: int = 1e7,
-                      fps: int = 60,
-                      simulationLength: float = 10.0) -> None:
-        """
-        the main simulation process for the universe
-        proceeds through a for loop, simulating each step and placing data into a queue
-        only places a fraction of the frames actually simulated into the queue
-        this fraction is calculated based on fps, sim length, and number of sim steps
-
-        :param numSteps: number of iterations which the simulation will take
-        :param fps: number of iterations per second which will be saved
-        :param simulationLength: length in seconds of the simulation
-
-        :return: none
-        """
-        # 1. Init
-        # set run ID
-        self.setSimRunID()
-        self.simRunPath = self.simTargetPath + self.simRunID
-        self.addSimRunEntry()
-        os.makedirs(self.simRunPath,
-                    exist_ok=True)
-        totalFrames: int = int(fps * simulationLength)
-        saveInterval: int = numSteps // totalFrames
-
-        entropies: list[float] = []
-        initialEntropies: list[float] = []
-        cpuFields: list[Field] = []
-
-        for field in self.fields:
-            entropy = field.calculateEntropy()
-            initialEntropies.append(entropy)
-
-        # 2. Multithreading queues
-        # Create multiprocessing queues
-        self.simQueue = mp.Queue()
-        self.simResultQueue = mp.Queue()
-
-        # 3. Main sim loop
-        self.simStartTime: float = time.time()
-        outputProcess: mp.Process = mp.Process(target=self.saveSimulation)
-        outputProcess.start()
-        # iterate through each step in the simulation
-        for step in range(int(numSteps)):
-            # CASE: step should be saved
-            if step % saveInterval == 0:
-                cpuFields = []
-                entropies = []
-                # iterate through fields and calculate entropies
-                for i, field in enumerate(self.fields):
-                    entropy = field.calculateEntropy()
-                    print(f"Initial entropy: {initialEntropies[i]}")
-                    entropies.append(entropy)
-                    cpuField = copy.deepcopy(field)
-                    cpuField.field = cpuField.field.cpu()
-                    cpuFields.append(cpuField)
-                self.simQueue.put((cpuFields,
-                                   entropies,
-                                   step))
-            self.update(dt=self.dt,
-                        delta=self.delta)
-
-        self.recordSimEnd()
