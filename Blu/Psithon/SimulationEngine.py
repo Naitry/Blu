@@ -24,13 +24,25 @@ import torch
 
 class SimulationEngine:
     def __init__(self,
-                 simulationFolderPath: str = '/mnt/nfs/simulations/'):
+                 resolution: int = 1000,
+                 spatialDimensions: int = 2,
+                 simulationFolderPath: str = './simulations/'):
         # get a list of available devices and set an active device
         self.devices: list[torch.device] = getDeviceList()
         self.activeDevice: torch.device = getDevice()
 
+        # simulation attributes
+        self.spatialDimentions: int = spatialDimensions
+        self.resolution: int = resolution
+
         # create a universe which the simulations will take place in
-        self.U = Universe()
+        self.U: Universe = Universe(spatialDimensions=self.spatialDimentions,
+                                    resolution=resolution,
+                                    scale=3.0e10,
+                                    speedLimit=3.0e8,
+                                    dt=1e-6,
+                                    delta=1e-1,
+                                    device=self.activeDevice)
 
         # simulation variables
         self.simTargetPath: str = simulationFolderPath
