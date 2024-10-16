@@ -1,12 +1,5 @@
-# System
-import os
-
 # Typing
-from typing import (Optional,
-                    Union)
-
-# Data
-import pandas as pd
+from typing import Optional
 
 # Compute
 import torch
@@ -32,14 +25,16 @@ class Universe:
         """
         Universe constructor
 
+        :param device: the torch capable device which the universe will be created on
         :param spatialDimensions: number of spatial dimensions in the Universe
         :param resolution: the resolution of the fields in each dimension
+        :param scale: describes the total scale of the universe in real world units
+        :param speedLimit: the maximum speed of propagation in the universe
         :param dt: the regular magnitude of the forward timestep for the universe
         :param delta: the magnitude of the distance between points in the system, heavily effects stability
         :param fields: an optional set of fields, if input this will be the basis of the Universe
+        :param particles: an optional set of particles
         :param dtype: the torch data type of the tensors
-        :param device: the torch capable device which the universe will be created on
-        :param simulationFolderPath: the path for simulation data to be saved to
         """
         self.spatialDimensions: int = spatialDimensions
         self.resolution: int = resolution
@@ -126,67 +121,3 @@ class Universe:
         for cloud in self.particles:
             cloud.update(dt=dt or self.dt,
                          delta=delta or self.delta)
-
-    def saveSimulation(self) -> None:
-        """
-        The saving process which will run in parallel to the main simulation process
-        Takes frames of the simulation queue and saves them with field save functions
-
-        :return: none
-        """
-        try:
-            while True:
-                data: Union[str | tuple] = self.simQueue.get()
-                # CASE: stop signal received
-                if data == "STOP":
-                    print("Stop signal received!")
-                    return
-                else:
-                    fields: list[Field]
-                    entropies: list[float]
-                    timestep: int
-                    fields, entropies, timestep = data
-                    for i, field in enumerate(fields):
-                        filename = f"field_{i}.hdf5"
-                        print(f"field {i}: t = {timestep}; entropy = {entropies[i]}")
-                        filepath = os.path.join(self.simRunPath,
-                                                filename)
-                        imagePath = os.path.join(self.simRunPath,
-                                                 "mostRecentTimestep.png")
-                        field.saveImage(imagePath)
-                        field.printField(clear=False)
-
-                        # Save the field to an HDF5 file
-                        field.saveHDF5(timestep=timestep,
-                                       entropy=entropies[i],
-                                       filepath=filepath)
-
-        except Exception as e:
-            print(f"Error in saving simulation: {e}")
-            self.simResultQueue.put("Error")
-            return
-
-    def setSimRunID(self) -> None:
-        """
-        Scans the run catalog file to determine what the run ID should be changed to
-        Updates the run ID of the universe when determined
-
-        :return: none
-        """
-        catalogPath: str = os.path.join(self.simTargetPath,
-                                        "runCatalog.csv")
-        nextIndex: int
-        if os.path.exists(catalogPath):
-            try:
-                # Read the existing run catalog
-                runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
-                # Extract run IDs, assuming the format "Run_X" and X is an integer
-                maxIndex: int = runCatalog['RunID'].str.extract('Run_([0-9]+)').astype(int).max().item()
-                nextIndex = maxIndex + 1
-            except Exception as e:
-                print(f"Error reading run catalog: {e}")
-                nextIndex = 0  # Default to 0 if any error occurs
-        else:
-            nextIndex = 1  # Start with 1 if no catalog exists
-
-        self.simRunID = f"Run_{nextIndex}"

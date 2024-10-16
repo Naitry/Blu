@@ -1,21 +1,41 @@
+# blu
 from Universe import Universe
 from Fields import Field
-import pandas as pd
-import datetime
+from Blu.Utils.Hardware import (getDevice,
+                                getDeviceList)
+
+# system
 import os
 import multiprocessing as mp
 import time
+import datetime
 import copy
+
+# I/O
+import pandas as pd
+
+# typing
 from typing import (Optional,
                     Union)
+
+# compute
+import torch
 
 
 class SimulationEngine:
     def __init__(self,
                  simulationFolderPath: str = '/mnt/nfs/simulations/'):
+        # get a list of available devices and set an active device
+        self.devices: list[torch.device] = getDeviceList()
+        self.activeDevice: torch.device = getDevice()
+
+        # create a universe which the simulations will take place in
         self.U = Universe()
+
         # simulation variables
         self.simTargetPath: str = simulationFolderPath
+        self.catalogPath: str = os.path.join(self.simTargetPath, "runCatalog.csv")
+
         self.simStartTime: Optional[float] = None
         self.simRunID: Optional[str] = None
         self.simRunPath: Optional[str] = None
@@ -23,28 +43,34 @@ class SimulationEngine:
         self.simResultQueue: Optional[mp.Queue] = None
 
     def addSimRunEntry(self) -> None:
-        catalogPath: str = os.path.join(self.simTargetPath, "runCatalog.csv")
+        # create a new entry for the catalog
         newEntry: pd.DataFrame = pd.DataFrame({
             'RunID': [self.simRunID],
             'StartTime': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         })
-        if os.path.exists(catalogPath):
-            runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
+
+        # CASE: simulation catalog exists
+        if os.path.exists(self.catalogPath):
+            # load the catalog and append the new entry
+            runCatalog: pd.DataFrame = pd.read_csv(self.catalogPath)
             updatedCatalog: pd.DataFrame = pd.concat([runCatalog, newEntry], ignore_index=True)
         else:
+            # create a fresh catalog with just the new entry
             updatedCatalog: pd.DataFrame = newEntry
-        updatedCatalog.to_csv(catalogPath, index=False)
+
+        # write out the updated catalog
+        updatedCatalog.to_csv(self.catalogPath, index=False)
 
     def recordSimEnd(self) -> None:
-        catalogPath: str = os.path.join(self.simTargetPath,
-                                        "runCatalog.csv")
-        if os.path.exists(catalogPath):
-            runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
+        # CASE: simulation catalog exists
+        if os.path.exists(self.catalogPath):
+            runCatalog: pd.DataFrame = pd.read_csv(self.catalogPath)
+            # CASE: Entry for the current run ID exists
             if self.simRunID in runCatalog['RunID'].values:
                 # If the column does not exist, it will be added
                 runCatalog.loc[runCatalog['RunID'] == self.simRunID, "EndTime"] = datetime.now().strftime(
                     '%Y-%m-%d %H:%M:%S')
-                runCatalog.to_csv(catalogPath,
+                runCatalog.to_csv(self.catalogPath,
                                   index=False)
                 print(f"Recorded end time for {self.simRunID}.")
             else:
@@ -115,10 +141,10 @@ class SimulationEngine:
                 cpuFields = []
                 # iterate through fields and calculate entropies
                 for i, field in enumerate(self.fields):
-                    entropy = field.calculateEntropy()
+                    entropy: float = field.calculateEntropy()
                     print(f"Initial entropy: {initialEntropies[i]}")
                     entropies.append(entropy)
-                    cpuField = copy.deepcopy(field)
+                    cpuField: Field = copy.deepcopy(field)
                     cpuField.field = cpuField.field.cpu()
                     cpuFields.append(cpuField)
                 self.simQueue.put((cpuFields,
