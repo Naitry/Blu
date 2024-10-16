@@ -41,19 +41,28 @@ class Field:
                  fieldRank: int = BLU_PSITHON_defaultRank,
                  resolution: int = BLU_PSITHON_defaultResolution,
                  dtype: torch.dtype = BLU_PSITHON_defaultDataType):
-        self.name = name
-        # main object: a tensor
+        # set field name
+        self.name: str = name
+
+        # set torch variables
         self.field: torch.Tensor
+        self.device: torch.device = device
+        self.dtype: torch.dtype = dtype
+
+        # set field shape and size
         self.spatialDimensions: int = spatialDimensions
         self.dimensions: int = spatialDimensions + 1
         self.resolution: int = resolution
-        self.dtype: torch.dtype = dtype
+
+        # CASE: field argument is none
         if field is None:
+            # generate field
             self.field = torch.zeros(size=[self.dimensions**(fieldRank - 1)] + [resolution] * self.spatialDimensions,
                                      dtype=dtype,
                                      device=device,
                                      requires_grad=False)
         else:
+            # assign field to the input
             self.field = field
 
     def addWavePacket(self,
@@ -61,8 +70,7 @@ class Field:
                       sigma: float = 20.0,
                       k: list[float] = None,
                       position: Optional[list[float]] = None,
-                      dtype: torch.dtype = torch.float32,
-                      device: torch.device = torch.device('mps')) -> None:
+                      dtype: torch.dtype = torch.float32) -> None:
         """
         Place a Gaussian wave packet into the field at a specified position.
 
@@ -71,28 +79,32 @@ class Field:
         :param k: Wave vector, defining the direction and speed of the packet.
         :param position: The position at which to place the center of the wave packet in the field.
         :param dtype: Data type for the wave packet tensor.
-        :param device: Device on which the wave packet will be generated.
         :return: None. The function modifies the field in place.
         """
+        device: torch.device = self.device
+        # CASE: position argument is none
         if position is None:
+            # set position to the middle of the field
             position = [self.resolution // 2] * self.spatialDimensions
 
-        # Ensure that the position and wave vector lists have the same number of dimensions as the field
+        # CASE: length of position != # of field dimensions
         if len(position) != self.field.dim():
-            raise ValueError("Position must have the same number of dimensions as the field\n" +
-                             ("len(position): %d != fied.dim: %d" % (len(position), self.field.dim())))
+            line1: str = "Position must have the same number of dimensions as the field\n"
+            line2: str = "len(position): %d != fied.dim: %d" % (len(position), self.field.dim())
+            raise ValueError(line1 + line2)
+        # CASE: length of wave vector != # of field dimensions
         if len(k) != self.field.dim():
             raise ValueError("Wave vector (k) must have the same number of dimensions as the field")
 
         # Generate the Gaussian wave packet
-        wavePacket = GaussianWavePacket(packetSize=packetSize,
-                                        dimensions=self.field.dim(),
-                                        sigma=sigma,
-                                        k=torch.tensor(data=k,
-                                                       dtype=torch.float32,
-                                                       device=device),
-                                        dtype=dtype,
-                                        device=device)
+        wavePacket: torch.Tensor = GaussianWavePacket(packetSize=packetSize,
+                                                      dimensions=self.field.dim(),
+                                                      sigma=sigma,
+                                                      k=torch.tensor(data=k,
+                                                                     dtype=torch.float32,
+                                                                     device=device),
+                                                      dtype=dtype,
+                                                      device=device)
 
         # Initialize slices for the field and the wave packet
         fieldSlices = []
