@@ -1,6 +1,6 @@
 # blu
-from Universe import Universe
-from Fields import Field
+from Blu.Psithon.Universe import Universe
+from Blu.Psithon.Fields import Field
 from Blu.Utils.Hardware import (getDevice,
                                 getDeviceList)
 
@@ -8,7 +8,7 @@ from Blu.Utils.Hardware import (getDevice,
 import os
 import multiprocessing as mp
 import time
-import datetime
+from datetime import datetime
 import copy
 
 # I/O
@@ -27,6 +27,7 @@ class SimulationEngine:
                  resolution: int = 1000,
                  spatialDimensions: int = 2,
                  simulationFolderPath: str = './simulations/'):
+
         # get a list of available devices and set an active device
         self.devices: list[torch.device] = getDeviceList()
         self.activeDevice: torch.device = getDevice()
@@ -46,7 +47,8 @@ class SimulationEngine:
 
         # simulation variables
         self.simTargetPath: str = simulationFolderPath
-        self.catalogPath: str = os.path.join(self.simTargetPath, "runCatalog.csv")
+        self.catalogPath: str = os.path.join(self.simTargetPath,
+                                             "runCatalog.csv")
 
         self.simStartTime: Optional[float] = None
         self.simRunID: Optional[str] = None
@@ -65,7 +67,9 @@ class SimulationEngine:
         if os.path.exists(self.catalogPath):
             # load the catalog and append the new entry
             runCatalog: pd.DataFrame = pd.read_csv(self.catalogPath)
-            updatedCatalog: pd.DataFrame = pd.concat([runCatalog, newEntry], ignore_index=True)
+            updatedCatalog: pd.DataFrame = pd.concat([runCatalog,
+                                                      newEntry],
+                                                     ignore_index=True)
         else:
             # create a fresh catalog with just the new entry
             updatedCatalog: pd.DataFrame = newEntry
@@ -90,82 +94,29 @@ class SimulationEngine:
         else:
             print("Catalog does not exist.")
 
-    def runSimulation(self,
-                      numSteps: int = 1e7,
-                      fps: int = 60,
-                      simulationLength: float = 10.0) -> None:
+    def setSimRunID(self) -> None:
         """
-        the main simulation process for the universe
-        proceeds through a for loop, simulating each step and placing data into a queue
-        only places a fraction of the frames actually simulated into the queue
-        this fraction is calculated based on fps, sim length, and number of sim steps
-
-        :param numSteps: number of iterations which the simulation will take
-        :param fps: number of iterations per second which will be saved
-        :param simulationLength: length in seconds of the simulation
+        Scans the run catalog file to determine what the run ID should be changed to
+        Updates the run ID of the universe when determined
 
         :return: none
         """
-        # 1. Init
-        # set run ID
-        self.setSimRunID()
-        # get the total sim run path
-        self.simRunPath = self.simTargetPath + self.simRunID
-        # add the sim run to the record
-        self.addSimRunEntry()
+        nextIndex: int
+        # CASE: simulation catalog exists
+        if os.path.exists(self.catalogPath):
+            try:
+                # Read the existing run catalog
+                runCatalog: pd.DataFrame = pd.read_csv(self.catalogPath)
+                # Extract run IDs, assuming the format "Run_X" and X is an integer
+                maxIndex: int = runCatalog['RunID'].str.extract('Run_([0-9]+)').astype(int).max().item()
+                nextIndex = maxIndex + 1
+            except Exception as e:
+                print(f"Error reading run catalog: {e}")
+                nextIndex = 0  # Default to 0 if any error occurs
+        else:
+            nextIndex = 1  # Start with 1 if no catalog exists
 
-        os.makedirs(self.simRunPath,
-                    exist_ok=True)
-
-        # calculate total simulation frames
-        totalFrames: int = int(fps * simulationLength)
-        # calculate interval at which frames should be saved at
-        saveInterval: int = numSteps // totalFrames
-
-        initialEntropies: list[float] = []
-        entropies: list[float] = []
-        cpuFields: list[Field] = []
-
-        # iterate through each field
-        for field in self.fields:
-            # calculate and store initial entropies
-            entropy: float = field.calculateEntropy()
-            initialEntropies.append(entropy)
-
-        # 2. Multithreading queues
-        # Create multiprocessing queues
-        self.simQueue: mp.Queue = mp.Queue()
-        self.simResultQueue: mp.Queue = mp.Queue()
-
-        # 3. Main sim loop
-        # set simulation start time
-        self.simStartTime: float = time.time()
-        # create the output process
-        outputProcess: mp.Process = mp.Process(target=self.saveSimulation)
-        # start the output process
-        outputProcess.start()
-        # iterate through each step in the simulation
-        for step in range(int(numSteps)):
-            # CASE: step should be saved
-            if step % saveInterval == 0:
-                # clear the lists
-                entropies = []
-                cpuFields = []
-                # iterate through fields and calculate entropies
-                for i, field in enumerate(self.fields):
-                    entropy: float = field.calculateEntropy()
-                    print(f"Initial entropy: {initialEntropies[i]}")
-                    entropies.append(entropy)
-                    cpuField: Field = copy.deepcopy(field)
-                    cpuField.field = cpuField.field.cpu()
-                    cpuFields.append(cpuField)
-                self.simQueue.put((cpuFields,
-                                   entropies,
-                                   step))
-            self.update(dt=self.dt,
-                        delta=self.delta)
-
-        self.recordSimEnd()
+        self.simRunID = f"Run_{nextIndex}"
 
     def saveSimulation(self) -> None:
         """
@@ -206,27 +157,82 @@ class SimulationEngine:
             self.simResultQueue.put("Error")
             return
 
-    def setSimRunID(self) -> None:
+    def runSimulation(self,
+                      numSteps: int = 1e7,
+                      fps: int = 60,
+                      simulationLength: float = 10.0) -> None:
         """
-        Scans the run catalog file to determine what the run ID should be changed to
-        Updates the run ID of the universe when determined
+        the main simulation process for the universe
+        proceeds through a for loop, simulating each step and placing data into a queue
+        only places a fraction of the frames actually simulated into the queue
+        this fraction is calculated based on fps, sim length, and number of sim steps
+
+        :param numSteps: number of iterations which the simulation will take
+        :param fps: number of iterations per second which will be saved
+        :param simulationLength: length in seconds of the simulation
 
         :return: none
         """
-        catalogPath: str = os.path.join(self.simTargetPath,
-                                        "runCatalog.csv")
-        nextIndex: int
-        if os.path.exists(catalogPath):
-            try:
-                # Read the existing run catalog
-                runCatalog: pd.DataFrame = pd.read_csv(catalogPath)
-                # Extract run IDs, assuming the format "Run_X" and X is an integer
-                maxIndex: int = runCatalog['RunID'].str.extract('Run_([0-9]+)').astype(int).max().item()
-                nextIndex = maxIndex + 1
-            except Exception as e:
-                print(f"Error reading run catalog: {e}")
-                nextIndex = 0  # Default to 0 if any error occurs
-        else:
-            nextIndex = 1  # Start with 1 if no catalog exists
+        # 1. Init
+        # set run ID
+        self.setSimRunID()
+        # get the total sim run path
+        self.simRunPath = self.simTargetPath + self.simRunID
+        # add the sim run to the record
+        self.addSimRunEntry()
 
-        self.simRunID = f"Run_{nextIndex}"
+        os.makedirs(self.simRunPath,
+                    exist_ok=True)
+
+        # calculate total simulation frames
+        totalFrames: int = int(fps * simulationLength)
+        # calculate interval at which frames should be saved at
+        saveInterval: int = numSteps // totalFrames
+
+        initialEntropies: list[float] = []
+        entropies: list[float] = []
+        cpuFields: list[Field] = []
+
+        # iterate through each field
+        for field in self.U.fields:
+            # calculate and store initial entropies
+            entropy: float = field.calculateEntropy()
+            initialEntropies.append(entropy)
+
+        # 2. Multithreading queues
+        # Create multiprocessing queues
+        self.simQueue: mp.Queue = mp.Queue()
+        self.simResultQueue: mp.Queue = mp.Queue()
+
+        # 3. Main sim loop
+        # set simulation start time
+        self.simStartTime: float = time.time()
+        # create the output process
+        outputProcess: mp.Process = mp.Process(target=self.saveSimulation)
+        # start the output process
+        outputProcess.start()
+        # iterate through each step in the simulation
+        for step in range(int(numSteps)):
+            # CASE: step should be saved
+            if step % saveInterval == 0:
+                # clear the lists
+                entropies = []
+                cpuFields = []
+                # iterate through fields
+                for i, field in enumerate(self.U.fields):
+                    # calculate and store field entropy
+                    entropy: float = field.calculateEntropy()
+                    entropies.append(entropy)
+                    # deepcopy field and move it to cpu
+                    cpuField: Field = copy.deepcopy(field)
+                    cpuField.field = cpuField.field.cpu()
+                    # store field
+                    cpuFields.append(cpuField)
+                # add the results to the output queue
+                self.simQueue.put((cpuFields,
+                                   entropies,
+                                   step))
+            # update the state of the universe
+            self.U.update()
+        # record the end of the simulation to the log file
+        self.recordSimEnd()

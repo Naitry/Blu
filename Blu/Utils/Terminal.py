@@ -113,16 +113,11 @@ def tensorToTextColored(tensor: torch.Tensor,
     # Clip values to [0, 1] range
     tensor = torch.clamp(tensor, 0, 1)
 
-    print("C: ", tensor.shape)
     chars: List[str] = BLU_pixel_chars
     spectrum: List[str] = BLU_color_spectrum
 
     # Convert the resized tensor to a colorized text representation
     lines: str = ""
-    count: int = 0
-    print(len(tensor))
-    print(len(tensor[0]))
-    input()
     # Iterate through each row in the image
     for row in tensor:
         # Iterate through each pixel in the row
@@ -138,10 +133,7 @@ def tensorToTextColored(tensor: torch.Tensor,
             # Append the char to the line
             lines += coloredChar
         # Newline
-        count += 1
-        print(count)
         lines += "\n"
-    print("FIELD CONVERTED")
     return lines
 
 

@@ -120,12 +120,14 @@ class Field:
         # Initialize slices for the field and the wave packet
         fieldSlices: list = []
         wavePacketSlices: list = []
+        print("Position: ", position)
 
         # Construct slices based on the specified position and the packet size
+        # iterate through each position
         for dim, pos in enumerate(position):
-            startPos = max(0,
-                           pos - packetSize // 2)
-            endPos = startPos + packetSize
+            startPos: int = max(0,
+                                pos - packetSize // 2)
+            endPos: int = startPos + packetSize
 
             # Adjust start and end positions if they are out of the field's boundaries
             startPos = max(min(startPos,
@@ -141,14 +143,20 @@ class Field:
             wavePacketEnd = wavePacketStart + (endPos - startPos)
 
             # Append the slices to the listsL
-            fieldSlices.append(slice(startPos,
-                                     endPos))
-            wavePacketSlices.append(slice(wavePacketStart,
-                                          wavePacketEnd))
+            fieldSlices.append(slice(int(startPos),
+                                     int(endPos)))
+            wavePacketSlices.append(slice(int(wavePacketStart),
+                                          int(wavePacketEnd)))
+
+        print("WP slices: ", wavePacketSlices)
+        print("Field slices: ", fieldSlices)
+
+        print("WP shape: ", wavePacket.shape)
+        print("Field shape: ", self.field.shape)
 
         # Place the wave packet into the field at the specified position
         # The ellipsis (...) allows for slicing in N dimensions
-        self.field[tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
+        self.field[0][tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
 
     def calculateEntropy(self) -> float:
         # Calculate the probability distribution from the wave function
