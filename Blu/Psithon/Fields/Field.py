@@ -79,7 +79,8 @@ class Field:
 
         # Ensure that the position and wave vector lists have the same number of dimensions as the field
         if len(position) != self.field.dim():
-            raise ValueError("Position must have the same number of dimensions as the field")
+            raise ValueError("Position must have the same number of dimensions as the field\n" +
+                             ("len(position): %d != fied.dim: %d" % (len(position), self.field.dim())))
         if len(k) != self.field.dim():
             raise ValueError("Wave vector (k) must have the same number of dimensions as the field")
 

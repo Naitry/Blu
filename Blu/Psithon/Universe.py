@@ -58,7 +58,9 @@ class Universe:
         self.dt: float = dt
         self.delta: float = delta
         self.fields: list[Field] = fields or []
-        self.particles: list[ParticleCloud] = particles
+        self.particles: list[ParticleCloud] = particles or []
+        self.particles: list[ParticleCloud] = particles or []
+        self.fields: list[Field] = fields or []
         self.dtype: torch.dtype = dtype
         self.device: torch.device = device
         # simulation variables
@@ -119,10 +121,10 @@ class Universe:
                          delta=delta or self.delta,
                          device=device or self.device)
 
-    def updateParticleCloud(self,
-                            dt: Optional[float] = None,
-                            delta: Optional[float] = None,
-                            device: Optional[torch.device] = None) -> None:
+    def updateParticleClouds(self,
+                             dt: Optional[float] = None,
+                             delta: Optional[float] = None,
+                             device: Optional[torch.device] = None) -> None:
         """
         update each field in the universe
 
