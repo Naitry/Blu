@@ -129,12 +129,14 @@ class Field:
                                 pos - packetSize // 2)
             endPos: int = startPos + packetSize
 
+            dimIndex: int = dim + 1
+            print(self.field.size(dimIndex))
             # Adjust start and end positions if they are out of the field's boundaries
             startPos = max(min(startPos,
-                               self.field.size(dim) - 1),
+                               self.field.size(dimIndex) - 1),
                            0)
             endPos = max(min(endPos,
-                             self.field.size(dim)),
+                             self.field.size(dimIndex)),
                          0)
 
             # Calculate the slice for the wave packet
@@ -208,9 +210,9 @@ class Field:
                  filepath: str) -> None:
         # Convert tensor to ComplexFloat if it's not already
         if self.field.dtype == torch.complex32:  # ComplexHalf in PyTorch is torch.complex32
-            converted_tensor = self.field.to(torch.complex64)  # Convert to ComplexFloat
+            converted_tensor = self.field[0].to(torch.complex64)  # Convert to ComplexFloat
         else:
-            converted_tensor = self.field
+            converted_tensor = self.field[0]
 
         entropy = entropy or self.calculateEntropy()
         with h5py.File(filepath,
@@ -233,10 +235,12 @@ class Field:
 
     def saveImage(self,
                   filepath: str) -> None:
-        print(self.field.size())
-        absField: np.ndarray = torch.abs(self.field).cpu().detach().numpy()
-        realField: np.ndarray = torch.real(self.field).cpu().detach().numpy()
-        imagField: np.ndarray = torch.imag(self.field).cpu().detach().numpy()
+        # split the representations of the field into 3 np arrays all on cpu
+        absField: np.ndarray = torch.abs(self.field[0]).cpu().detach().numpy()
+        realField: np.ndarray = torch.real(self.field[0]).cpu().detach().numpy()
+        imagField: np.ndarray = torch.imag(self.field[0]).cpu().detach().numpy()
+
+        print("field shape: ", absField.shape)
 
         def arrayToImage(arr: np.ndarray,
                          cmap):
@@ -251,15 +255,17 @@ class Field:
                                      cm.twilight_shifted)
         realImg: Image = arrayToImage(realField,
                                       cm.cool)
-        _imagImg: Image = arrayToImage(imagField,
-                                       cm.spring)
+        imagImg: Image = arrayToImage(imagField,
+                                      cm.spring)
+
+        fieldShape: list[int] = list(self.field[0].shape)
 
         combinedImg: Image = Image.new(mode='RGB',
-                                       size=(2 * self.field.size(0), self.field.size(1)))
+                                       size=(2 * fieldShape[0], fieldShape[1]))
         combinedImg.paste(im=absImg,
                           box=(0, 0))
         combinedImg.paste(im=realImg,
-                          box=(self.field.size(0), 0))
+                          box=(fieldShape[0], 0))
 
         combinedImg.save(filepath)
 

@@ -28,7 +28,8 @@ class ParticleCloud:
                     position: torch.Tensor = None,
                     velocity: torch.Tensor = None) -> None:
         if position.shape is not [self.spatialDimensions]:
-            print(f"Cannot use a position shape of {position.shape}, this particle cloud requires {[1, 1, self.spatialDimensions]}")
+            print(f"Cannot use a position shape of {position.shape}, ")
+            print(f"this particle cloud requires {[1, 1, self.spatialDimensions]}")
             return
         if velocity.shape is not [self.spatialDimensions]:
             print(f"Cannot use a velocity shape of {position.shape}, this particle cloud requires {[1, 1, self.spatialDimensions]}")

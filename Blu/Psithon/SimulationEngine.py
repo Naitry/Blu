@@ -126,31 +126,45 @@ class SimulationEngine:
         :return: none
         """
         try:
+            # CASE: still saving
             while True:
+                # get a data point from the output queue
                 data: Union[str | tuple] = self.simQueue.get()
+
                 # CASE: stop signal received
                 if data == "STOP":
                     print("Stop signal received!")
                     return
                 else:
+                    # output data fields
                     fields: list[Field]
                     entropies: list[float]
                     timestep: int
+
+                    # unpack data from queue
                     fields, entropies, timestep = data
+
+                    # iterate through each field
                     for i, field in enumerate(fields):
-                        filename = f"field_{i}.hdf5"
+                        # set the file name based on the field
+                        filename: str = f"field_{i}.hdf5"
                         print(f"field {i}: t = {timestep}; entropy = {entropies[i]}")
+                        # set filepath for the simulation data
                         filepath = os.path.join(self.simRunPath,
                                                 filename)
+                        # set filepath for the most recent timestep image
                         imagePath = os.path.join(self.simRunPath,
                                                  "mostRecentTimestep.png")
-                        field.saveImage(imagePath)
-                        field.printField(clear=False)
 
+                        # print the field to the terminal
+                        # field.printField(clear=False)
+                        # save the most recent timestep as an image
+                        field.saveImage(imagePath)
                         # Save the field to an HDF5 file
                         field.saveHDF5(timestep=timestep,
                                        entropy=entropies[i],
                                        filepath=filepath)
+                        print("field saved")
 
         except Exception as e:
             print(f"Error in saving simulation: {e}")
