@@ -3,11 +3,10 @@ from typing import Optional
 
 
 def GaussianWavePacket(packetSize: int,
+                       device: torch.device,
                        dimensions: int = 2,
                        sigma: float = 20.0,
-                       k: Optional[torch.Tensor] = None,
-                       dtype: torch.dtype = torch.float32,
-                       device: torch.device = torch.device('mps')) -> torch.Tensor:
+                       k: Optional[torch.Tensor] = None) -> torch.Tensor:
     """
     Generate an N-dimensional Gaussian wave packet.
 
@@ -34,7 +33,7 @@ def GaussianWavePacket(packetSize: int,
     rangeTensor: torch.Tensor = torch.arange(start=-packetSize // 2,
                                              end=packetSize // 2,
                                              step=1,
-                                             dtype=dtype,
+                                             dtype=torch.float32,
                                              device=device)
 
     # Create an N-dimensional grid

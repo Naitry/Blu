@@ -42,7 +42,7 @@ class SimulationEngine:
                                     resolution=resolution,
                                     scale=3.0e10,
                                     speedLimit=3.0e8,
-                                    dt=1e-4,
+                                    dt=1e-7,
                                     delta=1e-1,
                                     device=self.activeDevice)
 

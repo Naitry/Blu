@@ -43,6 +43,7 @@ Blu/Psithon/models/train.py
 Blu/Psithon/models/trainAutoEncoder.py
 Blu/Utils/ColorManager.py
 Blu/Utils/FileSystem.py
+Blu/Utils/Functions.py
 Blu/Utils/Hardware.py
 Blu/Utils/Markdown.py
 Blu/Utils/ReadHDF5.py

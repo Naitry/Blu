@@ -24,9 +24,7 @@ from Blu.Utils.Terminal import (clearTerminal,
                                 tensorToTextColored)
 from Blu.Utils.Functions import getCurrentFunctionName
 
-# Rendering and I/O
-
-# Warnings
+import random
 
 # Suppress specific UserWarnings
 warnings.filterwarnings("ignore",
@@ -75,10 +73,9 @@ class Field:
                       packetSize: int,
                       sigma: float = 20.0,
                       k: list[float] = None,
-                      position: Optional[list[float]] = None,
-                      dtype: torch.dtype = torch.float32) -> None:
+                      position: Optional[list[float]] = None) -> None:
         """
-        Place a Gaussian wave packet into the field at a specified position.
+        Place a Gaussian wave packet into the field at a specified position
 
         :param packetSize: Size of the wave packet.
         :param sigma: Controls the size of the wave packet.
@@ -113,9 +110,8 @@ class Field:
                                                       dimensions=fieldDims,
                                                       sigma=sigma,
                                                       k=torch.tensor(data=k,
-                                                                     dtype=torch.float32,
+                                                                     dtype=self.dtype,
                                                                      device=self.device),
-                                                      dtype=dtype,
                                                       device=self.device)
 
         # Initialize slices for the field and the wave packet
@@ -126,23 +122,13 @@ class Field:
         # iterate through each position
         for dim, pos in enumerate(position):
             startPos: int = max(0,
-                                pos - packetSize // 2)
+                                int(pos - float(packetSize) / 2.0))
             endPos: int = startPos + packetSize
 
-            dimIndex: int = dim + 1
-            print(self.field.size(dimIndex))
-            # Adjust start and end positions if they are out of the field's boundaries
-            startPos = max(min(startPos,
-                               self.field.size(dimIndex) - 1),
-                           0)
-            endPos = max(min(endPos,
-                             self.field.size(dimIndex)),
-                         0)
-
             # Calculate the slice for the wave packet
-            wavePacketStart = max(0,
-                                  packetSize // 2 - pos)
-            wavePacketEnd = wavePacketStart + (endPos - startPos)
+            wavePacketStart: int = max(0,
+                                       int(float(packetSize) / 2.0 - pos))
+            wavePacketEnd: int = wavePacketStart + (endPos - startPos)
 
             # Append the slices to the listsL
             fieldSlices.append(slice(int(startPos),
@@ -152,6 +138,19 @@ class Field:
 
         # Place the wave packet into the field at the specified position
         self.field[0][tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
+
+    def addRandomWavePacket(self) -> None:
+        """
+        Place a Gaussian wave packet into the field at a random position
+        """
+        dims: int = len(self.field.shape) - 1
+        size: int = random.randrange(10, int(self.resolution) // 3)
+        k: list[int] = [random.randrange(10, int(self.resolution)) for _ in range(dims)]
+        position: list[float] = [random.uniform(0 + size,
+                                                int(self.resolution) - size) for _ in range(dims)]
+        self.addWavePacket(packetSize=size,
+                           k=k,
+                           position=position)
 
     def calculateEntropy(self) -> float:
         # Calculate the probability distribution from the wave function
