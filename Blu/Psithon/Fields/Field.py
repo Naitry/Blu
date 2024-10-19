@@ -179,7 +179,7 @@ class Field:
         if self.field.shape[0] == 1:
             subField: torch.Tensor = self.field[0]
             # Initialize potential
-            v: torch.Tensor
+            v: torch.Tensor = torch.zeros_like(subField)
 
             # Calculate laplacian
             laplaceField: torch.Tensor = Laplacian(field=subField,
