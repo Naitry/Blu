@@ -1,5 +1,13 @@
 # forward type annotation
 from __future__ import annotations
+import warnings
+import h5py
+from matplotlib import cm
+from PIL import Image
+from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
+                                            BLU_PSITHON_defaultDataType,
+                                            BLU_PSITHON_defaultDimensions,
+                                            BLU_PSITHON_defaultResolution)
 
 # Typing
 from typing import Optional
@@ -14,18 +22,11 @@ from Blu.Psithon.Fields.GaussianWavePacket import GaussianWavePacket
 from Blu.Utils.Terminal import (clearTerminal,
                                 getTerminalSize,
                                 tensorToTextColored)
-from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
-                                            BLU_PSITHON_defaultDataType,
-                                            BLU_PSITHON_defaultDimensions,
-                                            BLU_PSITHON_defaultResolution)
+from Blu.Utils.Functions import getCurrentFunctionName
 
 # Rendering and I/O
-from PIL import Image
-from matplotlib import cm
-import h5py
 
 # Warnings
-import warnings
 
 # Suppress specific UserWarnings
 warnings.filterwarnings("ignore",
@@ -120,7 +121,6 @@ class Field:
         # Initialize slices for the field and the wave packet
         fieldSlices: list = []
         wavePacketSlices: list = []
-        print("Position: ", position)
 
         # Construct slices based on the specified position and the packet size
         # iterate through each position
@@ -150,26 +150,18 @@ class Field:
             wavePacketSlices.append(slice(int(wavePacketStart),
                                           int(wavePacketEnd)))
 
-        print("WP slices: ", wavePacketSlices)
-        print("Field slices: ", fieldSlices)
-
-        print("WP shape: ", wavePacket.shape)
-        print("Field shape: ", self.field.shape)
-
         # Place the wave packet into the field at the specified position
-        # The ellipsis (...) allows for slicing in N dimensions
         self.field[0][tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
 
     def calculateEntropy(self) -> float:
         # Calculate the probability distribution from the wave function
-        probabilityDistribution = (torch.abs(self.field) ** 2).type(torch.float32)
-        # Ensure normalization
+        probabilityDistribution: torch.Tensor = (torch.abs(self.field) ** 2).type(torch.float32)
+        # Normalize
         probabilityDistribution.divide_(torch.sum(probabilityDistribution))
 
         # Calculate the Shannon entropy
         # Add a small number to avoid log(0)
-        entropy = -torch.sum(probabilityDistribution * torch.log(probabilityDistribution + 1e-12))
-        print(entropy)
+        entropy: torch.Tensor = -torch.sum(probabilityDistribution * torch.log(probabilityDistribution + 1e-12))
 
         return entropy.item()
 
@@ -184,115 +176,125 @@ class Field:
         :param: dt: Time step for the update.
         :return: The updated field which contains San n-dimensional torch tensor.
         """
+        if self.field.shape[0] == 1:
+            subField: torch.Tensor = self.field[0]
+            # Initialize potential
+            v: torch.Tensor
 
-        # Initialize potential
-        v: torch.Tensor = torch.zeros_like(self.field)
+            # Calculate laplacian
+            laplaceField: torch.Tensor = Laplacian(field=subField,
+                                                   delta=delta)
 
-        # Calculate laplacian
-        laplaceField: torch.Tensor = Laplacian(field=self.field,
-                                               delta=delta)
+            # update the field according to the time dependent Schrödinger equation
+            subField.add_(-1j * dt * (-0.5 * laplaceField + v))
 
-        # update the field according to the time dependent Schrödinger equation
-        self.field.add_(-1j * dt * (-0.5 * laplaceField + v))
-
-        # iterate over each dimenshion and apply boundary conditions
-        for dim in range(self.field.dim()):
-            # Set the first and last index along each dimension to 0
-            self.field.index_fill_(dim,
-                                   torch.tensor([0, self.field.size(dim) - 1],
-                                                device=self.device),
-                                   0)
+            # iterate over each dimenshion and apply boundary conditions
+            for dim in range(subField.dim()):
+                # Set the first and last index along each dimension to 0
+                subField.index_fill_(dim,
+                                     torch.tensor([0, self.field.size(dim) - 1],
+                                                  device=self.device),
+                                     0)
+        else:
+            print(f"{getCurrentFunctionName()} not yet supported of this field rank")
         return self
 
     def saveHDF5(self,
                  timestep: int,
                  entropy: Optional[float],
                  filepath: str) -> None:
-        # Convert tensor to ComplexFloat if it's not already
-        if self.field.dtype == torch.complex32:  # ComplexHalf in PyTorch is torch.complex32
-            converted_tensor = self.field[0].to(torch.complex64)  # Convert to ComplexFloat
-        else:
-            converted_tensor = self.field[0]
+        if self.field.shape[0] == 1:
+            subField: torch.Tensor = self.field[0]
 
-        entropy = entropy or self.calculateEntropy()
-        with h5py.File(filepath,
-                       'a') as f:
-            # Convert and save real and imaginary components as float32 (numpy's default)
-            f.create_dataset(f'real_{timestep}',
-                             data=converted_tensor.real.numpy())
-            f.create_dataset(f'imaginary_{timestep}',
-                             data=converted_tensor.imag.numpy())
-            # Assuming 'potential' was meant to be a separate, real-valued dataset;
-            # adjust accordingly if it's meant to be part of the complex tensor
-            # For demonstration, saving it as is, but ensure it's properly handled according to your needs
-            f.create_dataset(f'potential_{timestep}',
-                             data=np.full_like(converted_tensor.real.numpy(),
-                                               fill_value=0.0))
-            f.create_dataset(f'name_{timestep}',
-                             data=np.array(self.name).astype('S'))  # Assuming self.name is a string
-            f.create_dataset(f'entropy_{timestep}',
-                             data=np.array(entropy).astype(np.float32))
+            # Convert tensor to ComplexFloat if it's not already
+            if self.field.dtype == torch.complex32:  # ComplexHalf in PyTorch is torch.complex32
+                subField = subField.to(torch.complex64)  # Convert to ComplexFloat
+
+            entropy = entropy or self.calculateEntropy()
+            with h5py.File(filepath,
+                           'a') as f:
+                # Convert and save real and imaginary components as float32 (numpy's default)
+                f.create_dataset(f'real_{timestep}',
+                                 data=subField.real.numpy())
+                f.create_dataset(f'imaginary_{timestep}',
+                                 data=subField.imag.numpy())
+                f.create_dataset(f'potential_{timestep}',
+                                 data=np.full_like(subField.real.numpy(),
+                                                   fill_value=0.0))
+                f.create_dataset(f'name_{timestep}',
+                                 data=np.array(self.name).astype('S'))
+                f.create_dataset(f'entropy_{timestep}',
+                                 data=np.array(entropy).astype(np.float32))
+        else:
+            print(f"{getCurrentFunctionName()} not yet supported of this field rank")
 
     def saveImage(self,
                   filepath: str) -> None:
-        # split the representations of the field into 3 np arrays all on cpu
-        absField: np.ndarray = torch.abs(self.field[0]).cpu().detach().numpy()
-        realField: np.ndarray = torch.real(self.field[0]).cpu().detach().numpy()
-        imagField: np.ndarray = torch.imag(self.field[0]).cpu().detach().numpy()
+        if self.field.shape[0] == 1:
+            subField: torch.Tensor = self.field[0]
 
-        print("field shape: ", absField.shape)
+            # split the representations of the field into 3 np arrays all on cpu
+            absField: np.ndarray = torch.abs(subField).cpu().detach().numpy()
+            realField: np.ndarray = torch.real(subField).cpu().detach().numpy()
+            # imagField: np.ndarray = torch.imag(subField).cpu().detach().numpy()
 
-        def arrayToImage(arr: np.ndarray,
-                         cmap):
-            if arr.max() > 0:  # Avoid division by zero
-                normalized_arr = arr / arr.max()
-            else:  # Handle the case where the array max is 0
-                normalized_arr = arr
-            return Image.fromarray(np.uint8(cmap(normalized_arr) * 255))
+            def arrayToImage(arr: np.ndarray,
+                             cmap):
+                if arr.max() > 0:  # Avoid division by zero
+                    normalized_arr = arr / arr.max()
+                else:  # Handle the case where the array max is 0
+                    normalized_arr = arr
+                return Image.fromarray(np.uint8(cmap(normalized_arr) * 255))
 
-        # Convert fields to images using Pillow
-        absImg: Image = arrayToImage(absField,
-                                     cm.twilight_shifted)
-        realImg: Image = arrayToImage(realField,
-                                      cm.cool)
-        imagImg: Image = arrayToImage(imagField,
-                                      cm.spring)
+            # Convert fields to images using Pillow
+            absImg: Image = arrayToImage(absField,
+                                         cm.twilight_shifted)
+            realImg: Image = arrayToImage(realField,
+                                          cm.cool)
+            # imagImg: Image = arrayToImage(imagField, cm.spring)
 
-        fieldShape: list[int] = list(self.field[0].shape)
+            fieldShape: list[int] = list(subField.shape)
 
-        combinedImg: Image = Image.new(mode='RGB',
-                                       size=(2 * fieldShape[0], fieldShape[1]))
-        combinedImg.paste(im=absImg,
-                          box=(0, 0))
-        combinedImg.paste(im=realImg,
-                          box=(fieldShape[0], 0))
+            combinedImg: Image = Image.new(mode='RGB',
+                                           size=(2 * fieldShape[0], fieldShape[1]))
+            combinedImg.paste(im=absImg,
+                              box=(0, 0))
+            combinedImg.paste(im=realImg,
+                              box=(fieldShape[0], 0))
 
-        combinedImg.save(filepath)
+            combinedImg.save(filepath)
+        else:
+            print(f"{getCurrentFunctionName()} not yet supported of this field rank")
 
     def printField(self,
                    clear: bool = True) -> None:
-        # CASE: clear terminal is true
-        if clear:
-            clearTerminal()
+        if self.field.shape[0] == 1:
+            subField: torch.Tensor = self.field[0]
 
-        # get terminal size
-        columns: int
-        lines: int
-        columns, lines = getTerminalSize()
+            # CASE: terminal should be cleared
+            if clear:
+                clearTerminal()
 
-        # adjust for aspect ratio of the tensor
-        aspectRatio: float = self.field[0].size(1) / self.field[0].size(0)
-        textWidth: int = columns
-        textHeight: int = int(textWidth * aspectRatio)
+            # get terminal size
+            columns: int
+            lines: int
+            columns, lines = getTerminalSize()
 
-        # take the absolute value of the field
-        absField: torch.Tensor = torch.abs(self.field[0])
+            # adjust for aspect ratio of the tensor
+            aspectRatio: float = subField.size(1) / subField.size(0)
+            textWidth: int = columns
+            textHeight: int = int(textWidth * aspectRatio)
 
-        # convert to colored text and print the field
-        print(tensorToTextColored(tensor=absField,
-                                  width=textWidth,
-                                  height=textHeight),
-              end="")
+            # take the absolute value of the field
+            absField: torch.Tensor = torch.abs(subField)
+
+            # convert to colored text and print the field
+            print(tensorToTextColored(tensor=absField,
+                                      width=textWidth,
+                                      height=textHeight),
+                  end="")
+        else:
+            print(f"{getCurrentFunctionName()} not yet supported of this field rank")
 
     def loadFromHDF5(self,
                      filePath: str,

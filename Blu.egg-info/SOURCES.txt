@@ -27,7 +27,7 @@ Blu/NLP/ThreeMagi/magi.py
 Blu/Psithon/DataSet.py
 Blu/Psithon/DefaultDefinitions.py
 Blu/Psithon/Simulation.py
-Blu/Psithon/SimulationDemo.py
+Blu/Psithon/SimulationEngine.py
 Blu/Psithon/Universe.py
 Blu/Psithon/__init__.py
 Blu/Psithon/loadAndRunSim.py

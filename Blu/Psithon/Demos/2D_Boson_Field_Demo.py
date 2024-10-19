@@ -8,7 +8,7 @@ def main():
     engine.U.addField(name="2D_boson_field")
 
     # Add wave packet
-    engine.U.fields[0].addWavePacket(packetSize=50.0,
+    engine.U.fields[0].addWavePacket(packetSize=200.0,
                                      k=[100.0,
                                         0.0],
                                      position=[500.0,

@@ -27,6 +27,7 @@ class SimulationEngine:
                  resolution: int = 1000,
                  spatialDimensions: int = 2,
                  simulationFolderPath: str = './simulations/'):
+        mp.set_start_method('spawn')
 
         # get a list of available devices and set an active device
         self.devices: list[torch.device] = getDeviceList()
@@ -41,7 +42,7 @@ class SimulationEngine:
                                     resolution=resolution,
                                     scale=3.0e10,
                                     speedLimit=3.0e8,
-                                    dt=1e-6,
+                                    dt=1e-7,
                                     delta=1e-1,
                                     device=self.activeDevice)
 
@@ -51,6 +52,7 @@ class SimulationEngine:
                                              "runCatalog.csv")
 
         self.simStartTime: Optional[float] = None
+        self.simStepsPerSecond: float = 0.0
         self.simRunID: Optional[str] = None
         self.simRunPath: Optional[str] = None
         self.simQueue: Optional[mp.Queue] = None
@@ -144,11 +146,13 @@ class SimulationEngine:
                     # unpack data from queue
                     fields, entropies, timestep = data
 
+                    print(f"Simulation step {timestep}:")
                     # iterate through each field
                     for i, field in enumerate(fields):
                         # set the file name based on the field
                         filename: str = f"field_{i}.hdf5"
-                        print(f"field {i}: t = {timestep}; entropy = {entropies[i]}")
+                        print(f"field {i}|| t = {timestep}; entropy = {entropies[i]}")
+
                         # set filepath for the simulation data
                         filepath = os.path.join(self.simRunPath,
                                                 filename)
@@ -156,15 +160,16 @@ class SimulationEngine:
                         imagePath = os.path.join(self.simRunPath,
                                                  "mostRecentTimestep.png")
 
-                        # print the field to the terminal
-                        # field.printField(clear=False)
+                        # print the most recent timestep to the console
+                        field.printField()
+
                         # save the most recent timestep as an image
                         field.saveImage(imagePath)
+
                         # Save the field to an HDF5 file
                         field.saveHDF5(timestep=timestep,
                                        entropy=entropies[i],
                                        filepath=filepath)
-                        print("field saved")
 
         except Exception as e:
             print(f"Error in saving simulation: {e}")
@@ -194,7 +199,7 @@ class SimulationEngine:
         self.simRunPath = self.simTargetPath + self.simRunID
         # add the sim run to the record
         self.addSimRunEntry()
-
+        # make a new directory for the simulation
         os.makedirs(self.simRunPath,
                     exist_ok=True)
 
@@ -229,6 +234,8 @@ class SimulationEngine:
         for step in range(int(numSteps)):
             # CASE: step should be saved
             if step % saveInterval == 0:
+                # update the steps/second
+                self.simStepsPerSecond = step / (time.time() - self.simStartTime)
                 # clear the lists
                 entropies = []
                 cpuFields = []
