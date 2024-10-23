@@ -42,7 +42,7 @@ class SimulationEngine:
                                     resolution=resolution,
                                     scale=3.0e10,
                                     speedLimit=3.0e8,
-                                    dt=1e-7,
+                                    dt=1e-6,
                                     delta=1e-1,
                                     device=self.activeDevice)
 
@@ -158,7 +158,7 @@ class SimulationEngine:
                                                 filename)
                         # set filepath for the most recent timestep image
                         imagePath = os.path.join(self.simRunPath,
-                                                 "mostRecentTimestep.png")
+                                                 f"mostRecentTimestep{timestep}.png")
 
                         # print the most recent timestep to the console
                         field.printField()

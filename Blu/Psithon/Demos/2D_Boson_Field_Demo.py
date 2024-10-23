@@ -8,7 +8,7 @@ def main():
     engine.U.addField(name="2D_boson_field")
 
     # Add wave packet
-    [engine.U.fields[0].addRandomWavePacket() for _ in range(20)]
+    [engine.U.fields[0].addRandomWavePacket() for _ in range(2)]
 
     # Run the simulation
     engine.runSimulation(numSteps=int(3e7))

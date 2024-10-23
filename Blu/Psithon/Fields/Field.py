@@ -2,7 +2,7 @@
 from __future__ import annotations
 import warnings
 import h5py
-from matplotlib import cm
+from matplotlib import cm, colors
 from PIL import Image
 from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
                                             BLU_PSITHON_defaultDataType,
@@ -71,7 +71,6 @@ class Field:
 
     def addWavePacket(self,
                       packetSize: int,
-                      sigma: float = 20.0,
                       k: list[float] = None,
                       position: Optional[list[float]] = None) -> None:
         """
@@ -108,7 +107,7 @@ class Field:
         # Generate the Gaussian wave packet
         wavePacket: torch.Tensor = GaussianWavePacket(packetSize=packetSize,
                                                       dimensions=fieldDims,
-                                                      sigma=sigma,
+                                                      sigma=40.0,
                                                       k=torch.tensor(data=k,
                                                                      dtype=self.dtype,
                                                                      device=self.device),
@@ -139,15 +138,16 @@ class Field:
         # Place the wave packet into the field at the specified position
         self.field[0][tuple(fieldSlices)] += wavePacket[tuple(wavePacketSlices)]
 
-    def addRandomWavePacket(self) -> None:
+    def addRandomWavePacket(self,
+                            kMagnitude: float = 0.3) -> None:
         """
         Place a Gaussian wave packet into the field at a random position
         """
         dims: int = len(self.field.shape) - 1
-        size: int = random.randrange(10, int(self.resolution) // 3)
-        k: list[int] = [random.randrange(10, int(self.resolution)) for _ in range(dims)]
-        position: list[float] = [random.uniform(0 + size,
-                                                int(self.resolution) - size) for _ in range(dims)]
+        size: int = random.randrange(10, int(self.resolution))
+        k: list[int] = [random.uniform(-kMagnitude, kMagnitude) for _ in range(dims)]
+        position: list[float] = [random.uniform(0 + size // 2,
+                                                int(self.resolution) - size // 2) for _ in range(dims)]
         self.addWavePacket(packetSize=size,
                            k=k,
                            position=position)
@@ -227,18 +227,22 @@ class Field:
         else:
             print(f"{getCurrentFunctionName()} not yet supported of this field rank")
 
-    def saveImage(self,
-                  filepath: str) -> None:
+    def saveImage(self, filepath: str) -> None:
         if self.field.shape[0] == 1:
             subField: torch.Tensor = self.field[0]
 
-            # split the representations of the field into 3 np arrays all on cpu
+            # split the representations of the field into 2 np arrays all on cpu
             absField: np.ndarray = torch.abs(subField).cpu().detach().numpy()
-            realField: np.ndarray = torch.real(subField).cpu().detach().numpy()
-            # imagField: np.ndarray = torch.imag(subField).cpu().detach().numpy()
+            imagField: np.ndarray = torch.imag(subField).cpu().detach().numpy()
 
-            def arrayToImage(arr: np.ndarray,
-                             cmap):
+            def create_blue_transparent_colormap():
+                # Create a colormap that goes from transparent to blue
+                blues = [(1, 0.3, 0, 0), (1, 0.3, 0, 1)]  # (R, G, B, A)
+                n_bins = 100  # Number of divisions in the colormap
+                cmap = colors.LinearSegmentedColormap.from_list("blue_transparent", blues, N=n_bins)
+                return cmap
+
+            def arrayToImage(arr: np.ndarray, cmap):
                 if arr.max() > 0:  # Avoid division by zero
                     normalized_arr = arr / arr.max()
                 else:  # Handle the case where the array max is 0
@@ -246,20 +250,20 @@ class Field:
                 return Image.fromarray(np.uint8(cmap(normalized_arr) * 255))
 
             # Convert fields to images using Pillow
-            absImg: Image = arrayToImage(absField,
-                                         cm.twilight_shifted)
-            realImg: Image = arrayToImage(realField,
-                                          cm.cool)
-            # imagImg: Image = arrayToImage(imagField, cm.spring)
+            absImg: Image = arrayToImage(absField, cm.Blues)
 
-            fieldShape: list[int] = list(subField.shape)
+            # Create and use the blue-to-transparent colormap for imaginary field
+            blue_transparent_cmap = create_blue_transparent_colormap()
+            imagImg: Image = arrayToImage(imagField, blue_transparent_cmap)
 
-            combinedImg: Image = Image.new(mode='RGB',
-                                           size=(2 * fieldShape[0], fieldShape[1]))
-            combinedImg.paste(im=absImg,
-                              box=(0, 0))
-            combinedImg.paste(im=realImg,
-                              box=(fieldShape[0], 0))
+            # Convert absolute image to RGBA
+            absImg = absImg.convert("RGBA")
+
+            # Ensure both images have the same size
+            absImg = absImg.resize(imagImg.size)
+
+            # Combine the images
+            combinedImg = Image.alpha_composite(absImg, imagImg)
 
             combinedImg.save(filepath)
         else:
