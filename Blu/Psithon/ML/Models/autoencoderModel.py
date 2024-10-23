@@ -1,9 +1,10 @@
-# Autoencoder input of 1000x1000
+# autoencoder input of 1000x1000
 # hybridized convolutional and fourier layers with the goal of the latent space having a high correlation to the spectral and spacial characteristics of the field
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+
 
 class ComplexLinear(nn.Module):
     def __init__(self, in_features, out_features):
@@ -32,7 +33,6 @@ class ComplexLinear(nn.Module):
         return torch.complex(real, imag)
 
 
-
 class ComplexConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
         super().__init__()
@@ -48,10 +48,11 @@ class ComplexConv2d(nn.Module):
             input = torch.complex(input, torch.zeros_like(input))
 
         real = F.conv2d(input.real, self.real_weight, self.real_bias, self.stride, self.padding) - \
-               F.conv2d(input.imag, self.imag_weight, None, self.stride, self.padding)
+            F.conv2d(input.imag, self.imag_weight, None, self.stride, self.padding)
         imag = F.conv2d(input.real, self.imag_weight, self.real_bias, self.stride, self.padding) + \
-               F.conv2d(input.imag, self.real_weight, None, self.stride, self.padding)
+            F.conv2d(input.imag, self.real_weight, None, self.stride, self.padding)
         return torch.complex(real, imag)
+
 
 class FourierLayer(nn.Module):
     def __init__(self, height, width):
@@ -66,10 +67,11 @@ class FourierLayer(nn.Module):
         x_weighted = torch.complex(real, imag)
         return torch.fft.ifft2(x_weighted)
 
+
 class HybridLayer(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size):
         super().__init__()
-        self.conv = ComplexConv2d(input_channels, output_channels, kernel_size=kernel_size, padding=kernel_size//2)
+        self.conv = ComplexConv2d(input_channels, output_channels, kernel_size=kernel_size, padding=kernel_size // 2)
         self.fft = FourierLayer(1000, 1000)
 
     def forward(self, x):
@@ -78,11 +80,13 @@ class HybridLayer(nn.Module):
         x_combined = torch.cat((x_conv, x_fft), dim=1)
         return x_combined
 
+
 class ComplexReLU(nn.Module):
     def forward(self, input):
         real = F.leaky_relu(input.real)
         imag = F.leaky_relu(input.imag)
         return torch.complex(real, imag)
+
 
 class ComplexMaxPool2d(nn.Module):
     def __init__(self, kernel_size, stride=None, padding=0):
@@ -96,6 +100,7 @@ class ComplexMaxPool2d(nn.Module):
         imag = F.max_pool2d(input.imag, self.kernel_size, self.stride, self.padding)
         return torch.complex(real, imag)
 
+
 class ComplexUpsample(nn.Module):
     def __init__(self, scale_factor=2, mode='bilinear'):
         super(ComplexUpsample, self).__init__()
@@ -108,6 +113,7 @@ class ComplexUpsample(nn.Module):
         real_upsampled = F.interpolate(input.real, scale_factor=self.scale_factor, mode=self.mode)
         imag_upsampled = F.interpolate(input.imag, scale_factor=self.scale_factor, mode=self.mode)
         return torch.complex(real_upsampled, imag_upsampled)
+
 
 class ComplexDropout(nn.Module):
     def __init__(self, p=0.5, inplace=False):
@@ -127,6 +133,7 @@ class ComplexDropout(nn.Module):
                 return torch.complex(input.real * real_mask, input.imag * imag_mask)
         return input
 
+
 class ComplexToChannels(nn.Module):
     def __init__(self):
         super(ComplexToChannels, self).__init__()
@@ -134,6 +141,7 @@ class ComplexToChannels(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Splits a complex tensor into its real and imaginary parts, and stacks them as separate channels
         return torch.stack((x.real, x.imag), dim=1)  # Shape: [batch, 2, height, width]
+
 
 class ChannelsToComplex(nn.Module):
     def __init__(self):
@@ -143,6 +151,7 @@ class ChannelsToComplex(nn.Module):
         # Assumes input x has shape [batch, 2, height, width] where x[:, 0] is real and x[:, 1] is imaginary
         return torch.complex(x[:, 0], x[:, 1])  # Recombines two channels into a complex tensor
 
+
 class squeeze0(nn.Module):
     def __init__(self):
         super(squeeze0, self).__init__()
@@ -150,12 +159,14 @@ class squeeze0(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x.squeeze(0)
 
+
 class unsqueeze0(nn.Module):
     def __init__(self):
         super(unsqueeze0, self).__init__()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x.unsqueeze(0)
+
 
 class HybridAutoencoder(nn.Module):
     def __init__(self, BottleneckChannels: int):
@@ -165,16 +176,16 @@ class HybridAutoencoder(nn.Module):
         self.encoder = nn.Sequential(
             squeeze0(),
             ComplexToChannels(),
-            nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1),       nn.ReLU(True),
-            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),      nn.ReLU(True),
-            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),      nn.ReLU(True),
+            nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1), nn.ReLU(True),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1), nn.ReLU(True),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1), nn.ReLU(True),
             nn.Conv2d(16, self.BC, kernel_size=3, stride=2, padding=1), nn.ReLU(True),
         )
         # Decoder
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(self.BC, 16, kernel_size=3, stride=2, padding=1, output_padding=1),  nn.ReLU(True),
-            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0),       nn.ReLU(True),
-            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0),       nn.ReLU(True),
+            nn.ConvTranspose2d(self.BC, 16, kernel_size=3, stride=2, padding=1, output_padding=1), nn.ReLU(True),
+            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0), nn.ReLU(True),
+            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0), nn.ReLU(True),
             nn.ConvTranspose2d(16, 2, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.Tanh(),
             ChannelsToComplex(),
@@ -196,26 +207,26 @@ class HybridAutoencoder_deep(nn.Module):
         self.encoder = nn.Sequential(
             squeeze0(),
             ComplexToChannels(),
-            nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1),   nn.ReLU(True),
-            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),  nn.ReLU(True),
-            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),  nn.ReLU(True),
-            nn.Conv2d(16, self.bottleneckChannels, kernel_size=3, stride=2, padding=1),  nn.ReLU(True),
-            #nn.Conv2d(32, 16, kernel_size=7, stride=5, padding=1),  nn.ReLU(True),
-            #nn.Conv2d(16, 16, kernel_size=6, stride=5, padding=1),  nn.ReLU(True),
-            #nn.Conv2d(16, 32, kernel_size=6, stride=5, padding=1),  nn.ReLU(True),
-            #nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  nn.ReLU(True),
-            #nn.Flatten()
+            nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1), nn.ReLU(True),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1), nn.ReLU(True),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1), nn.ReLU(True),
+            nn.Conv2d(16, self.bottleneckChannels, kernel_size=3, stride=2, padding=1), nn.ReLU(True),
+            # nn.Conv2d(32, 16, kernel_size=7, stride=5, padding=1),  nn.ReLU(True),
+            # nn.Conv2d(16, 16, kernel_size=6, stride=5, padding=1),  nn.ReLU(True),
+            # nn.Conv2d(16, 32, kernel_size=6, stride=5, padding=1),  nn.ReLU(True),
+            # nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  nn.ReLU(True),
+            # nn.Flatten()
         )
         # Decoder
         self.decoder = nn.Sequential(
-            #nn.Unflatten(1,(64, 1, 1)),
-            #nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),   nn.ReLU(True),
-            #nn.ConvTranspose2d(32, 16, kernel_size=6, stride=5, padding=1, output_padding=1),   nn.ReLU(True),
-            #nn.ConvTranspose2d(16, 16, kernel_size=6, stride=5, padding=1, output_padding=1),   nn.ReLU(True),
-            #nn.ConvTranspose2d(16, 32, kernel_size=6, stride=5, padding=1, output_padding=1),   nn.ReLU(True),
-            nn.ConvTranspose2d(self.bottleneckChannels, 16, kernel_size=3, stride=2, padding=1, output_padding=1),   nn.ReLU(True),
-            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0),   nn.ReLU(True),
-            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0),   nn.ReLU(True),
+            # nn.Unflatten(1,(64, 1, 1)),
+            # nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),   nn.ReLU(True),
+            # nn.ConvTranspose2d(32, 16, kernel_size=6, stride=5, padding=1, output_padding=1),   nn.ReLU(True),
+            # nn.ConvTranspose2d(16, 16, kernel_size=6, stride=5, padding=1, output_padding=1),   nn.ReLU(True),
+            # nn.ConvTranspose2d(16, 32, kernel_size=6, stride=5, padding=1, output_padding=1),   nn.ReLU(True),
+            nn.ConvTranspose2d(self.bottleneckChannels, 16, kernel_size=3, stride=2, padding=1, output_padding=1), nn.ReLU(True),
+            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0), nn.ReLU(True),
+            nn.ConvTranspose2d(16, 16, kernel_size=3, stride=1, padding=1, output_padding=0), nn.ReLU(True),
             nn.ConvTranspose2d(16, 2, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.Tanh(),
             ChannelsToComplex(),
@@ -239,18 +250,18 @@ class HybridAutoencoder_STAR(nn.Module):
             ComplexToChannels(),
             nn.Conv2d(2, 16, kernel_size=3, stride=2, padding=1),  # input is 1000x1000x2, output is 500x500x16
             nn.ReLU(True),
-            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1), # output is 250x250x32
+            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),  # output is 250x250x32
             nn.ReLU(True),
-            nn.Conv2d(32, 16, kernel_size=3, stride=2, padding=1), # output is 125x125x2
+            nn.Conv2d(32, 16, kernel_size=3, stride=2, padding=1),  # output is 125x125x2
             nn.ReLU(True),
             nn.Flatten()
         )
         # Decoder
         self.decoder = nn.Sequential(
-            nn.Unflatten(1,(16, 125, 125)),
-            nn.ConvTranspose2d(16, 32, kernel_size=3, stride=2, padding=1, output_padding=1), # output is 250x250x32
+            nn.Unflatten(1, (16, 125, 125)),
+            nn.ConvTranspose2d(16, 32, kernel_size=3, stride=2, padding=1, output_padding=1),  # output is 250x250x32
             nn.ReLU(True),
-            nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1), # output is 500x500x16
+            nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1),  # output is 500x500x16
             nn.ReLU(True),
             nn.ConvTranspose2d(16, 2, kernel_size=3, stride=2, padding=1, output_padding=1),  # output is 1000x1000x2
             nn.Tanh(),  # Using Tanh to keep the output in the range [-1,1] which is typical for normalized image data
@@ -264,6 +275,7 @@ class HybridAutoencoder_STAR(nn.Module):
         x_reconstructed = self.decoder(x_encoded)
 
         return x_reconstructed
+
 
 class HybridAutoencoder_6(nn.Module):
     def __init__(self):
@@ -284,51 +296,51 @@ class HybridAutoencoder_6(nn.Module):
             nn.Conv2d(20, 40, kernel_size=3, stride=2, padding=1),
             nn.ReLU(True),
             # [40x125x125]
-            #nn.Conv2d(40, 80, kernel_size=3, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(40, 80, kernel_size=3, stride=2, padding=1),
+            # nn.ReLU(True),
             # [80x63x63]
-            #nn.Conv2d(80, 160, kernel_size=3, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(80, 160, kernel_size=3, stride=2, padding=1),
+            # nn.ReLU(True),
             # [160x32x32]
-            #nn.Conv2d(160, 320, kernel_size=4, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(160, 320, kernel_size=4, stride=2, padding=1),
+            # nn.ReLU(True),
             # [320x16x16]
-            #nn.Conv2d(320, 640, kernel_size=3, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(320, 640, kernel_size=3, stride=2, padding=1),
+            # nn.ReLU(True),
             # [640x8x8]
-            #nn.Conv2d(640, 1280, kernel_size=3, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(640, 1280, kernel_size=3, stride=2, padding=1),
+            # nn.ReLU(True),
             # [1280x4x4]
-            #nn.Conv2d(1280, 1280, kernel_size=3, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(1280, 1280, kernel_size=3, stride=2, padding=1),
+            # nn.ReLU(True),
             # [1280x2x2]
-            #nn.Conv2d(1280, 1280, kernel_size=3, stride=2, padding=1),
-            #nn.ReLU(True),
+            # nn.Conv2d(1280, 1280, kernel_size=3, stride=2, padding=1),
+            # nn.ReLU(True),
             # [1280x1x1]
         )
 
         self.decoder = nn.Sequential(
             # [1280x1x1]
-            #nn.ConvTranspose2d(1280, 1280, kernel_size=3, stride=2, padding=1, output_padding=1),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(1280, 1280, kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.ReLU(True),
             # [1280x2x2]
-            #nn.ConvTranspose2d(1280, 1280, kernel_size=3, stride=2, padding=1, output_padding=1),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(1280, 1280, kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.ReLU(True),
             # [1280x4x4]
-            #nn.ConvTranspose2d(1280, 640, kernel_size=3, stride=2, padding=1, output_padding=1),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(1280, 640, kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.ReLU(True),
             # [640x8x8]
-            #nn.ConvTranspose2d(640, 320, kernel_size=3, stride=2, padding=1, output_padding=1),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(640, 320, kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.ReLU(True),
             # [320x16x16]
-            #nn.ConvTranspose2d(320, 160, kernel_size=3, stride=2, padding=1, output_padding=1),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(320, 160, kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.ReLU(True),
             # [160x32x32]
-            #nn.ConvTranspose2d(160, 80, kernel_size=3, stride=2, padding=1, output_padding=0),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(160, 80, kernel_size=3, stride=2, padding=1, output_padding=0),
+            # nn.ReLU(True),
             # [80x63x63] - Note, output shape is approximate due to stride and kernel size choices
-            #nn.ConvTranspose2d(80, 40, kernel_size=3, stride=2, padding=1, output_padding=0),
-            #nn.ReLU(True),
+            # nn.ConvTranspose2d(80, 40, kernel_size=3, stride=2, padding=1, output_padding=0),
+            # nn.ReLU(True),
             # [40x125x125]
             nn.ConvTranspose2d(40, 20, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(True),
@@ -345,13 +357,14 @@ class HybridAutoencoder_6(nn.Module):
             # [1x1000x1000]
         )
 
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Convert complex input to two-channel real tensor
         x_encoded = self.encoder(x)
         x_reconstructed = self.decoder(x_encoded)
 
         return x_reconstructed
+
+
 class HybridAutoencoder_5(nn.Module):
     def __init__(self):
         super(HybridAutoencoder, self).__init__()
@@ -454,6 +467,7 @@ class HybridAutoencoder_4(nn.Module):
         x_decoded = self.decoder(x_encoded)
         return x_decoded
 
+
 class HybridAutoencoder_3(nn.Module):
     def __init__(self):
         super().__init__()
@@ -476,6 +490,7 @@ class HybridAutoencoder_3(nn.Module):
         x_encoded = self.encoder(x)
         x_decoded = self.decoder(x_encoded)
         return x_decoded
+
 
 class HybridAutoencoder_2(nn.Module):
     def __init__(self):
@@ -507,6 +522,7 @@ class HybridAutoencoder_2(nn.Module):
             x = torch.complex(x, torch.zeros_like(x))  # Ensure output is complex
         return x
 
+
 class HybridAutoencoder_1(nn.Module):
     def __init__(self):
         super().__init__()
@@ -537,6 +553,3 @@ class HybridAutoencoder_1(nn.Module):
         if not x.is_complex():
             x = torch.complex(x, torch.zeros_like(x))  # Ensure output is complex
         return x
-
-
-
