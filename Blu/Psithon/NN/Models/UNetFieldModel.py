@@ -1,10 +1,12 @@
+import torch
+from Blu.Psithon.NN.Models.FieldModel import FieldModel
 
 
-class UNet(nn.Module):
+class UNet(FieldModel):
     def __init__(self,
                  n_channels: int,
                  n_classes: int,
-                 bilinear=True):
+                 bilinear: bool = True):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -22,7 +24,8 @@ class UNet(nn.Module):
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.Tensor):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
