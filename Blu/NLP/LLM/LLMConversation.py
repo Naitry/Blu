@@ -34,3 +34,22 @@ class LLMConvo(ABC):
 
     def currentDateTime(self) -> str:
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def dictToConvo(convo_data: dict) -> LLMConvo:
+    convo = LLMConvo()
+
+    message: dict[str, str]
+    for message in convo_data.get("messages",
+                                  []):
+        role: str = message.get("role")
+        content: str = message.get("content")
+
+        if role == "system":
+            convo.addSystemMessage(content)
+        elif role == "user":
+            convo.addUserMessage(content)
+        elif role == "assistant":
+            convo.addAssistantMessage(content)
+
+    return convo
