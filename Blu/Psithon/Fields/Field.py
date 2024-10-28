@@ -9,7 +9,7 @@ from Blu.Psithon.DefaultDefinitions import (BLU_PSITHON_defaultRank,
                                             BLU_PSITHON_defaultDimensions,
                                             BLU_PSITHON_defaultResolution)
 
-# Typing
+# 3Typing
 from typing import Optional
 
 # Compute

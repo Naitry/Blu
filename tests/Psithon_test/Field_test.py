@@ -1,10 +1,11 @@
 from Blu.Psithon.Fields.Field import Field
+import torch
 
 
 def test_1PsithonField():
-    F: Field = Field(name="Test_Field")
-    F.addWavePacket(packetSize=500,
-                    k=[0.5, 0.5])
+    F: Field = Field(name="Test_Field",
+                     device=torch.device("cpu"))
+    F.addRandomWavePacket()
     F.printField(clear=False)
 
 
