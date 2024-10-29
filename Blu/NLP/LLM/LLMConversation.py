@@ -1,4 +1,11 @@
 from abc import ABC, abstractmethod
+from enum import Enum
+
+
+class MessageType(Enum):
+    SYSYEM = 1
+    ASSISTANT = 2
+    USER = 3
 
 
 class LLMConvo(ABC):
@@ -21,7 +28,8 @@ class LLMConvo(ABC):
         self.messages: list[dict[str, str, str]] = []
 
     @abstractmethod
-    def addSystemMessage(self, message: str) -> None:
+    def addSystemMessage(self,
+                         message: str) -> None:
         """
         Add a system message to the conversation.
 
@@ -31,7 +39,8 @@ class LLMConvo(ABC):
         pass
 
     @abstractmethod
-    def addAssistantMessage(self, message: str) -> None:
+    def addAssistantMessage(self,
+                            message: str) -> None:
         """
         Add an assistant's response to the conversation.
 
@@ -41,13 +50,28 @@ class LLMConvo(ABC):
         pass
 
     @abstractmethod
-    def addUserMessage(self, message: str) -> None:
+    def addUserMessage(self,
+                       message: str) -> None:
         """
         Add a user's message to the conversation.
 
         Args:
             message (str): The user's message content to be added
         """
+        pass
+
+    @abstractmethod
+    def addMessage(self,
+                   message: str,
+                   messageType: MessageType) -> None:
+        match messageType:
+            case MessageType.SYSTEM:
+                self.addSystemMessage(message)
+            case MessageType.ASSISTANT:
+                self.addAssistantMessage(message)
+            case MessageType.USER:
+                self.addUserMessage(message)
+
         pass
 
     @abstractmethod

@@ -13,7 +13,7 @@ from openai import OpenAI
 
 # Blu
 from Blu.Utils.Utils import readMarkdownFile
-from Blu.NLP.LLM.LLMConversation import LLMConvo
+from Blu.NLP.LLM.LLMConversation import LLMConvo, dictToConvo
 from Blu.NLP.OpenAI.OAIConvo import OAIConvo1_3_8
 from Blu.NLP.Core.Information import InformationFragment
 
@@ -37,25 +37,6 @@ class PersonaComponent(InformationFragment):
 
 
 KEY: str = readMarkdownFile("/home/naitry/Dev/GAIT/3Magi/markdown/key.md")
-
-
-def dictToConvo(convo_data: dict) -> LLMConvo:
-    convo = OAIConvo1_3_8(OpenAI(api_key=KEY))
-
-    message: dict[str, str]
-    for message in convo_data.get("messages",
-                                  []):
-        role: str = message.get("role")
-        content: str = message.get("content")
-
-        if role == "system":
-            convo.addSystemMessage(content)
-        elif role == "user":
-            convo.addUserMessage(content)
-        elif role == "assistant":
-            convo.addAssistantMessage(content)
-
-    return convo
 
 
 def customJsonSerializer(obj) -> dict | str:
