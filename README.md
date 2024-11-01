@@ -1,8 +1,8 @@
 # Blu: Universe Framework
 
-!(./Gallery/firstSuccessfulBounce.gif)
-!(./Gallery/sphericalPlane.gif)
-!(./Gallery/output8.png)
+![](./Gallery/firstSuccessfulBounce.gif)
+![](./Gallery/sphericalPlane.gif)
+![](./Gallery/output8.png)
 
 ## Setup/Install
 ```
