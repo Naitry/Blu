@@ -1,5 +1,9 @@
 # Blu: Universe Framework
 
+!(./Gallery/firstSuccessfulBounce.gif)
+!(./Gallery/sphericalPlane.gif)
+!(./Gallery/output8.png)
+
 ## Setup/Install
 ```
 git clone https://github.com/Naitry/Blu/
