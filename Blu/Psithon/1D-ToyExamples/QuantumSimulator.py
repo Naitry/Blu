@@ -6,20 +6,21 @@ from typing import Optional
 
 class QuantumSimulator:
     def __init__(self,
+                 size: float,
                  nx: int = 2000,
-                 dx: float = 0.1,
                  dt: float = 10.0,
                  hbar: float = 1.0,
                  infinite: bool = True,
                  wellWidth: Optional[float] = None):
         self.device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.size: float = size
         self.nx: int = nx
-        self.dx: float = dx
+        self.dx: float = size / nx
         self.dt: float = dt
         self.hbar: float = hbar
         self.width: float = self.nx * self.dx
         self.x: torch.Tensor = torch.linspace(-self.width / 2, self.width / 2, nx, dtype=torch.complex64).to(self.device)
-        self.k: torch.Tensor = 2 * np.pi * torch.fft.fftfreq(nx, dx).to(self.device)
+        self.k: torch.Tensor = 2 * np.pi * torch.fft.fftfreq(nx, self.dx).to(self.device)
         self.infinite: bool = infinite
 
         # Set default well width

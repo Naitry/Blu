@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
     sim_params = {
         "nx": 2000,
-        "dx": 0.1,
+        "size": 200,
         "dt": 0.001,
         "infinite": True,
     }

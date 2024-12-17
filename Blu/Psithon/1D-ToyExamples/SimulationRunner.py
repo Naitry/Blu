@@ -1,7 +1,7 @@
 import torch
 import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Optional
 import json
 import h5py
 import numpy as np
@@ -9,7 +9,8 @@ from QuantumSimulator import QuantumSimulator
 
 
 class SimulationRunner:
-    def __init__(self, base_save_dir: str = "quantum_sim_results"):
+    def __init__(self,
+                 base_save_dir: str = "quantum_sim_results"):
         self.base_save_dir = base_save_dir
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -17,7 +18,7 @@ class SimulationRunner:
                                     num_packets: int,
                                     x_range: tuple,
                                     p_range: tuple,
-                                    sigma_range: tuple) -> List[Dict[str, float]]:
+                                    sigma_range: tuple) -> list[dict[str, float]]:
         packets = []
         for _ in range(num_packets):
             packets.append({
@@ -29,7 +30,7 @@ class SimulationRunner:
 
     def create_multi_packet_wave(self,
                                  simulator: QuantumSimulator,
-                                 packet_params: List[Dict[str, float]]) -> torch.Tensor:
+                                 packet_params: list[dict[str, float]]) -> torch.Tensor:
         psi = torch.zeros(simulator.nx, dtype=torch.complex64, device=simulator.device)
         for params in packet_params:
             psi += simulator.gaussian_packet(**params)
@@ -39,32 +40,29 @@ class SimulationRunner:
     def run_multiple_simulations(self,
                                  num_simulations: int,
                                  step_method: str,
+                                 duration: float,
+                                 frame_rate: float,
                                  num_steps: int,
                                  num_frames: int,
-                                 sim_params: Dict[str, Any],
-                                 wave_params: Dict[str, Any],
-                                 num_packets: int = 1) -> List[str]:
+                                 num_packets: int = 1) -> list[str]:
         """Run multiple simulations with different random initializations"""
         save_dirs = []
         for sim_num in range(num_simulations):
             print(f"\nStarting simulation {sim_num + 1}/{num_simulations}")
-            save_dir = self.run_simulation(
-                step_method=step_method,
-                num_steps=num_steps,
-                num_frames=num_frames,
-                sim_params=sim_params,
-                wave_params=wave_params,
-                num_packets=num_packets
-            )
+            save_dir = self.run_simulation(step_method=step_method,
+                                           duration=duration,
+                                           frame_rate=frame_rate,
+                                           num_steps=num_steps,
+                                           num_packets=num_packets)
             save_dirs.append(save_dir)
         return save_dirs
 
     def run_simulation(self,
                        step_method: str,
+                       duration: float,
+                       frame_rate: float,
                        num_steps: int,
-                       num_frames: int,
-                       sim_params: Dict[str, Any],
-                       wave_params: Dict[str, Any],
+                       wave_x_range: Optional[(float, float)] = (50, 50),
                        num_packets: int = 1) -> str:
         """
         Run simulation with specified number of saved frames
@@ -73,11 +71,10 @@ class SimulationRunner:
             step_method: Evolution method ('split_operator', 'direct', 'cayley')
             num_steps: Total number of simulation steps
             num_frames: Number of frames to save
-            sim_params: Parameters for QuantumSimulator
             wave_params: Parameters for initial wave function
             num_packets: Number of random wave packets
         """
-        save_interval = max(1, num_steps // (num_frames - 1))
+        save_interval = max(1, frame_rate)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         save_dir = os.path.join(self.base_save_dir, f"{step_method}_sim_{timestamp}")
         os.makedirs(save_dir, exist_ok=True)
@@ -89,12 +86,13 @@ class SimulationRunner:
             sigma_range=wave_params.get("sigma_range", (10.0, 30.0))
         )
 
+        num_frames = int(frame_rate * duration)
+
         config = {
             "step_method": step_method,
             "num_steps": num_steps,
             "num_frames": num_frames,
             "save_interval": save_interval,
-            "sim_params": sim_params,
             "packet_params": packet_params
         }
         with open(os.path.join(save_dir, "config.json"), "w") as f:
