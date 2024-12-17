@@ -1,0 +1,1 @@
+A piece of information is going to be presented to you. Try to make the returned information shorter. Condense the information and return the non redundant information accordingly
